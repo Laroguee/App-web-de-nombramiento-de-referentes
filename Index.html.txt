@@ -395,7 +395,7 @@
       }
     }
 
-    // --- NUEVA FUNCIÓN GENERADORA: AHORA INCLUYE LOS ARCHIVOS ---
+    // ---  FUNCIÓN GENERADORA FORMULARIO
     function generarHTMLReferente(titulo, rolKey, requerido, prefix) {
       const reqAttr = requerido ? 'required' : '';
       const badge = requerido ? '<span class="text-danger">*</span>' : '<span class="badge bg-secondary">Opcional</span>';
@@ -516,7 +516,7 @@
        activarTooltips(); 
     }
 
-    // --- VISIBILIDAD (Nuevo vs Cambio) ---
+    // --- VISIBILIDAD 
     function logicNuevoIngreso() {
         const tipoSolicitud = document.getElementById('ni_tipoSolicitud').value;
         const contenidoFormulario = document.getElementById('ni_restodelFormulario');
@@ -652,7 +652,7 @@
         return true; // Todo correcto
     }
 
-    // --- NUEVA VALIDACIÓN DE ARCHIVOS EN FRONTEND ---
+    // ---  VALIDACIÓN DE ARCHIVOS EN FRONTEND ---
   
 function validarArchivosPDF(form) {
         const inputsFile = form.querySelectorAll('input[type="file"]');
@@ -661,7 +661,7 @@ function validarArchivosPDF(form) {
                 for (let file of input.files) {
                     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
                         
-                        // --- AQUÍ EL CAMBIO ---
+                        
                         mostrarError(`❌ <strong>ERROR DE FORMATO</strong><br><br>El archivo "<em>${file.name}</em>" no es un PDF.<br>Por favor, suba únicamente archivos .pdf`);
                         
                         input.value = ''; 
@@ -696,7 +696,7 @@ function validarAtestadosOCarta(form) {
                 const tieneCarta = inputCarta.files.length > 0;
 
                 if (!tieneAtestados && !tieneCarta) {
-                    // --- AQUÍ EL CAMBIO ---
+                    
                     mostrarError(`⚠️ <strong>FALTA DOCUMENTACIÓN</strong><br>Referente: ${tituloReferente}<br><br>Debe adjuntar obligatoriamente:<br>👉 Atestados de Farmacovigilancia<br>O BIEN<br>👉 Carta de Compromiso.`);
                     
                     inputAtestados.classList.add('is-invalid');
@@ -710,7 +710,7 @@ function validarAtestadosOCarta(form) {
         }
         return true; 
     }
-// FUNCIÓN PARA MOSTRAR ERRORES BONITOS
+// FUNCIÓN PARA MOSTRAR ERRORES 
     function mostrarError(mensaje) {
         const modalEl = document.getElementById('modalError');
         const textoEl = document.getElementById('mensajeErrorTexto');
@@ -721,7 +721,7 @@ function validarAtestadosOCarta(form) {
         modal.show();
     }
 
-    // 1. FUNCIÓN PARA ABRIR LA VENTANA BONITA
+    // 1. FUNCIÓN PARA ABRIR LA VENTANA DE ALERTAS
     function mostrarModalExito(tipo, codigo) {
       const modalElement = document.getElementById('modalExito');
       const mensajePrincipal = document.getElementById('modalMensajePrincipal');
@@ -755,7 +755,7 @@ function validarAtestadosOCarta(form) {
       volverMenu();
     }
 
-    // --- FUNCIÓN DE ENVÍO ACTUALIZADA ---
+    // --- FUNCIÓN DE ENVÍO  ---
     function procesarEnvioVisual(e, tipoFormulario) {
       e.preventDefault();
       const form = e.target;
@@ -795,7 +795,7 @@ function validarAtestadosOCarta(form) {
                 document.getElementById('ni_restodelFormulario').classList.add('d-none');
              }
 
-             // --- AQUÍ EL CAMBIO: USAMOS MODAL EN VEZ DE ALERT ---
+             // ---MODAL EN VEZ DE ALERT ---
              mostrarModalExito(tipoFormulario, infoExtra);
              
              // Ocultar pantalla azul (transición suave al modal)
