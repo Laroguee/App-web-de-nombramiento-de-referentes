@@ -1,0 +1,282 @@
+// --- CONFIGURACIÓN DE IDs ---
+const ID_FOLDER_GESTION     = "1duuPt6vgjtJsy1HIh062vD1YdqJ3p6Lm";
+const ID_FOLDER_SUBSANACION = "1nrhlmxEA9fwFfni6yyxgqXEmsi_uVeai";
+const ID_FOLDER_ATESTADOS   = "1592GAYi7AruWEGHFwhYGEpGvnwr4a_XQ";
+const ID_FOLDER_DICTAMENES  = "1Isb_1gtt1_uNA0hDA2m4j2lJ0ijQGfdv";
+
+const ID_SHEET = "1ESor7hY9VI-oxkXofm-tGAffjWN4iQ1krInICrFeLWA";
+
+const MAPA_DICTAMENES = {
+  "Farmacia": "dictamen_1", "Prestador": "dictamen_1",
+
+  "Drogueria": "dictamen_2", "Laboratorio": "dictamen_2", "TRS_Nacional": "dictamen_2",
+
+  "TRS_Extranjero": "dictamen_3",
+
+  "Botiquin": "dictamen_4",
+
+  "Institucional": "dictamen_5"
+};
+
+function doGet() {
+  return HtmlService.createTemplateFromFile('Index')
+      .evaluate().setTitle('Gestión de Referentes - SRS')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function procesarFormulario(formObject) {
+  // Logs para depuración
+  console.log("Procesando solicitud...");
+  
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (e) { return "Error: Sistema saturado."; }
+
+  let nuevoCorrelativo = "";
+  
+  // Generar ID solo para Nuevo Ingreso
+  if (formObject.ni_tipoSolicitud) {
+     nuevoCorrelativo = obtenerSiguienteCorrelativoMemoria(); 
+  }
+  
+  lock.releaseLock(); 
+
+  try {
+    const ss = SpreadsheetApp.openById(ID_SHEET);
+
+    // =========================================================
+    // CASO 1: GESTIÓN REFERENTES (NUEVO INGRESO / CAMBIO)
+    // =========================================================
+    if (formObject.ni_tipoSolicitud) {
+      const sheet = ss.getSheetByName("BITACORA DE RFV");
+      
+      // 1. Obtener carpeta RAÍZ > Carpeta AÑO
+      const parentFolder = obtenerCarpetaDelAnio(ID_FOLDER_GESTION);
+      
+      // 2. Crear carpeta SOLICITUD (Solo una carpeta por trámite, aunque sean 50 farmacias)
+      const carpetaTramite = parentFolder.createFolder(nuevoCorrelativo);
+      const urlCarpeta = carpetaTramite.getUrl();
+
+      copiarDictamen(formObject.ni_tipoEstablecimiento, carpetaTramite);
+
+      const urlFormulario = subirArchivo(formObject.file_ni_nombramiento, carpetaTramite, "NI_Formulario_" + nuevoCorrelativo);
+      const titular = obtenerDatosRol(formObject, carpetaTramite, 'ni', 'titular');
+      const suplente = obtenerDatosRol(formObject, carpetaTramite, 'ni', 'suplente');
+      const esavi = obtenerDatosRol(formObject, carpetaTramite, 'ni', 'esavi');
+      const local = obtenerDatosRol(formObject, carpetaTramite, 'ni', 'local');
+
+      // --- PREPARAR LA FILA BASE ---
+      let filaBase = new Array(40).fill(""); 
+
+      filaBase[0] = nuevoCorrelativo;              // A
+      filaBase[1] = urlCarpeta;                    // B
+      filaBase[2] = formObject.ni_tipoSolicitud;   // C 
+      filaBase[3] = formObject.ni_fecha;           // D
+
+      filaBase[8] = formObject.ni_tipoEstablecimiento; // I
+      filaBase[9] = formObject.ni_conglomerado;    // J
+      filaBase[10] = formObject.ni_cantidadEstablecimientos || "N/A"; // K
+      filaBase[14] = formObject.ni_nombreSolicitante; // O
+      filaBase[15] = formObject.ni_cargoSolicitante;  // P
+      
+      // Datos Referentes
+      filaBase[16] = titular.nombre;               
+      filaBase[17] = titular.jv;                   
+      filaBase[18] = suplente.nombre;              
+      filaBase[19] = suplente.jv;                  
+      filaBase[20] = local.nombre;                 
+      filaBase[21] = local.jv;                     
+      filaBase[22] = esavi.nombre;                 
+      filaBase[23] = esavi.jv;                     
+
+      // Correo
+      filaBase[49] = formObject.ni_email; // Columna 
+
+      // --- LÓGICA DE DUPLICACIÓN (CONGLOMERADO) ---
+      let cantidadRepeticiones = 1;
+
+      // Si es conglomerado "Si" y hay un número válido, usamos ese número
+      if (formObject.ni_conglomerado === "Si" && formObject.ni_cantidadEstablecimientos) {
+          cantidadRepeticiones = parseInt(formObject.ni_cantidadEstablecimientos);
+          // Validación por si ponen 0 o texto raro
+          if (isNaN(cantidadRepeticiones) || cantidadRepeticiones < 1) cantidadRepeticiones = 1;
+      }
+
+      // Creamos un array que contenga la fila repetida N veces
+      let bloqueDeFilas = [];
+      for (let i = 0; i < cantidadRepeticiones; i++) {
+          // Usamos [...filaBase] para crear una copia y no una referencia
+          bloqueDeFilas.push([...filaBase]);
+      }
+
+      // --- GUARDADO MASIVO ---
+      // Escribimos el bloque completo de una sola vez
+      sheet.getRange(sheet.getLastRow() + 1, 1, bloqueDeFilas.length, filaBase.length).setValues(bloqueDeFilas);
+
+      // *** ENVIAR CORREO (Solo uno por solicitud) ***
+      enviarCorreoConfirmacion(formObject.ni_email, "Nombramiento de Referentes de Farmacovigilancia", nuevoCorrelativo, formObject.ni_nombreSolicitante);
+
+      return "Exito|" + nuevoCorrelativo;
+    }
+
+    // =========================================================
+    // CASO 2: SUBSANACIÓN
+    // =========================================================
+    else if (formObject.sub_correlativo) {
+      const sheet = ss.getSheetByName("BITACORA DE RFV");
+      const parentFolder = obtenerCarpetaDelAnio(ID_FOLDER_SUBSANACION);
+      
+      const nombreCarpeta = formObject.sub_correlativo.trim().toUpperCase();
+      const carpetaTramite = parentFolder.createFolder(nombreCarpeta + " (Subsanación)");
+      const urlCarpeta = carpetaTramite.getUrl();
+      
+      const urlDocs = subirArchivo(formObject.file_sub_documentos, carpetaTramite, "SUB_" + nombreCarpeta);
+
+      let fila = new Array(20).fill("");
+      fila[0] = nombreCarpeta;        
+      fila[1] = urlCarpeta;  
+      fila[2] ='Subsanación de observaciones';        
+      fila[3] = formObject.sub_fecha; 
+      fila[8] = formObject.sub_tipoEstablecimiento; 
+      fila[14] = formObject.sub_nombreSolicitante;   
+      fila[15] = formObject.sub_cargoSolicitante;    
+      fila[49] = formObject.sub_email; // Columna I
+
+      sheet.getRange(sheet.getLastRow() + 1, 1, 1, fila.length).setValues([fila]);
+      enviarCorreoConfirmacion(formObject.sub_email, "Subsanación", nombreCarpeta, formObject.sub_nombreSolicitante);
+
+      return "Exito|Subsanación recibida para: " + nombreCarpeta;
+    }
+
+    // =========================================================
+    // CASO 3: ATESTADOS
+    // =========================================================
+    else if (formObject.at_correlativo) {
+      const sheet = ss.getSheetByName("BITACORA DE ATESTADOS");
+      const parentFolder = obtenerCarpetaDelAnio(ID_FOLDER_ATESTADOS);
+      
+      const nombreCarpeta = formObject.at_correlativo.trim().toUpperCase();
+      const carpetaTramite = parentFolder.createFolder(nombreCarpeta + " (Evaluación)");
+      const urlCarpeta = carpetaTramite.getUrl(); 
+
+      const urlDocs = subirArchivo(formObject.file_at_atestados, carpetaTramite, "EVAL_" + nombreCarpeta);
+
+      let fila = new Array(20).fill("");
+      fila[0] = nombreCarpeta;        
+      fila[1] = urlCarpeta; 
+      fila[2] ='SOLICITUD DE EVALUACION DE ATESTADOS';           
+      fila[4] = formObject.at_fecha;           
+      fila[5] = formObject.at_tipoEstablecimiento; 
+      fila[15] = formObject.at_email; // Columna I
+
+      sheet.getRange(sheet.getLastRow() + 1, 1, 1, fila.length).setValues([fila]);
+      enviarCorreoConfirmacion(formObject.at_email, "Evaluación Atestados", nombreCarpeta, "Usuario");
+
+      return "Exito|Evaluación recibida para: " + nombreCarpeta;
+    }
+
+  } catch (e) {
+    return "Error: " + e.toString();
+  }
+}
+
+// =========================================================
+//  FUNCIONES AUXILIARES
+// =========================================================
+
+function obtenerCarpetaDelAnio(idCarpetaRaiz) {
+  const rootFolder = DriveApp.getFolderById(idCarpetaRaiz);
+  const currentYear = new Date().getFullYear().toString(); 
+  const folders = rootFolder.getFoldersByName(currentYear);
+  
+  if (folders.hasNext()) {
+    return folders.next(); 
+  } else {
+    return rootFolder.createFolder(currentYear); 
+  }
+}
+
+function enviarCorreoConfirmacion(emailDestino, tipoTramite, correlativo, nombre) {
+  if (!emailDestino) return;
+  let asunto = (tipoTramite === "Nombramiento de Referentes de Farmacovigilancia") ? "✅ Confirmación SRS - " + correlativo : "✅ Documentos Recibidos - " + correlativo;
+  let cuerpo = `
+      <div style="font-family: Arial, sans-serif; color: #333;">
+        <h3>Estimado Usuario/a ${nombre || ''},</h3>
+        <p>Trámite de <strong>${tipoTramite}</strong> registrado exitosamente.</p>
+        <p>Expediente: <strong>${correlativo}</strong></p>
+        <hr><small>Mensaje automático SRS.</small>
+      </div>`;
+  try { MailApp.sendEmail({ to: emailDestino, subject: asunto, htmlBody: cuerpo }); } catch (e) { console.log(e.message); }
+}
+
+function obtenerSiguienteCorrelativoMemoria() {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const year = new Date().getFullYear();
+  const key = 'CONTADOR_' + year; 
+  let ultimoNumero = Number(scriptProperties.getProperty(key) || 0);
+  let nuevoNumero = ultimoNumero + 1;
+  scriptProperties.setProperty(key, nuevoNumero.toString());
+  return `RFV-${year}-${String(nuevoNumero).padStart(4, '0')}`;
+}
+
+function copiarDictamen(tipoEstablecimiento, carpetaDestino) {
+  try {
+    const nombreArchivo = MAPA_DICTAMENES[tipoEstablecimiento];
+    if (!nombreArchivo) return;
+    const carpetaFuente = DriveApp.getFolderById(ID_FOLDER_DICTAMENES);
+    const archivos = carpetaFuente.getFilesByName(nombreArchivo);
+    if (archivos.hasNext()) archivos.next().makeCopy("Dictamen_Para_Llenar", carpetaDestino);
+  } catch (e) { console.log(e.message); }
+}
+
+function subirArchivo(blob, folder, nombreBase) {
+  if (!blob || typeof blob.getContentType !== 'function') return ""; 
+  const bytes = blob.getBytes();
+  if (bytes.length === 0) return "";
+  
+  const mimeType = blob.getContentType();
+  if (mimeType !== 'application/pdf' && mimeType !== 'application/octet-stream') console.log("Warn: " + mimeType);
+
+  try {
+    const safeName = nombreBase.replace(/[^a-zA-Z0-9-_]/g, '_');
+    blob.setName(safeName + ".pdf");
+    return folder.createFile(blob).getUrl();
+  } catch (e) { 
+    throw new Error("Error interno subiendo archivo (" + nombreBase + "): " + e.message);
+  }
+}
+
+function obtenerDatosRol(form, folder, prefix, rol) {
+  const nombre = form[`${prefix}_nombre_${rol}`];
+  // Si no hay nombre, devolvemos vacio.
+  // Nota: En 'Cambio de Referente', los inputs no chequeados están disabled 
+  // y no envían valor, así que esta línea los filtra correctamente.
+  if (!nombre || nombre === "") {
+      return { nombre: "", jv: "", urlAtest: "", urlAnual: "", urlCarnet: "", urlCarta: "" };
+  }
+  
+  const jv = form[`${prefix}_jv_${rol}`] || "N/A"; 
+
+  const urlAtest = subirArchivo(form[`${prefix}_file_${rol}_atestados`], folder, `${prefix}_${rol}_Atestados`);
+  const urlAnual = subirArchivo(form[`${prefix}_file_${rol}_anualidad`], folder, `${prefix}_${rol}_Anualidad`);
+  const urlCarnet = subirArchivo(form[`${prefix}_file_${rol}_carnet`], folder, `${prefix}_${rol}_Carnet`);
+  const urlCarta = subirArchivo(form[`${prefix}_file_${rol}_carta`], folder, `${prefix}_${rol}_Carta`);
+  
+  // Archivo Respaldo (Extranjero)
+  const urlRespaldo = subirArchivo(form[`${prefix}_file_${rol}_respaldo`], folder, `${prefix}_${rol}_Respaldo_Profesional`);
+
+  // Si hay respaldo, lo ponemos en la variable del carnet para que se guarde en esa columna
+  let carnetFinal = urlCarnet;
+  if (urlRespaldo !== "") {
+      carnetFinal = urlRespaldo + " (Doc. Respaldo)";
+  }
+
+  return {
+    nombre: nombre,
+    jv: jv,
+    urlAtest: urlAtest,
+    urlAnual: urlAnual,
+    urlCarnet: carnetFinal, 
+    urlCarta: urlCarta
+  };
+}
