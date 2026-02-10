@@ -68,7 +68,7 @@
         </div>
 
         <p class="small text-muted mt-3 mb-0">
-          <i class="bi bi-info-circle"></i> Guarde este número. Se ha creado su expediente digital.
+          <i class="bi bi-info-circle"></i> Guarde este número. Se ha creado su solicitud.
         </p>
         <p>Se ha enviado un correo de confirmación,revise su bandeja de spam.</p>
       </div>
@@ -129,7 +129,7 @@
             <div class="col-md-4">
               <div class="card card-menu p-4 text-center" onclick="mostrarPantalla('nuevoIngreso')">
                 <i class="bi bi-file-earmark-plus text-primary"></i>
-                <h5 class="fw-bold">Nombramiento Referentes Farmacovigilancia</h5>
+                <h5 class="fw-bold">Nombramiento de Referentes de Farmacovigilancia</h5>
                 <small class="text-muted">Nuevo Nombramiento o Cambio de Referente.</small>
               </div>
             </div>
@@ -143,7 +143,7 @@
             <div class="col-md-4">
               <div class="card card-menu p-4 text-center" onclick="mostrarPantalla('atestados')">
                 <i class="bi bi-clipboard-check text-success"></i>
-                <h5 class="fw-bold">Evaluación Atestados</h5>
+                <h5 class="fw-bold">Evaluación de Atestados de Farmacovigilancia</h5>
                 <small class="text-muted">Revisión de atestados pendientes.</small>
               </div>
             </div>
@@ -244,6 +244,9 @@
                   <button type="submit" class="btn btn-primary btn-lg px-5">
                      Enviar Solicitud <i class="bi bi-send-fill ms-2"></i>
                   </button>
+                  <button type="button" class="btn btn-sm btn-outline-info mb-3" data-bs-toggle="modal" data-bs-target="#modalConsejosPDF">
+  <i class="bi bi-question-circle"></i> Ver requisitos de escaneo
+</button>
                 </div>
             </div>
           </form>
@@ -308,6 +311,9 @@
                 </div>
                 <div class="mt-4 text-end">
                     <button type="submit" class="btn btn-warning text-white">Enviar Subsanación</button>
+                  <button type="button" class="btn btn-sm btn-outline-info mb-3" data-bs-toggle="modal" data-bs-target="#modalConsejosPDF">
+  <i class="bi bi-question-circle"></i> Ver requisitos de escaneo
+</button>
                 </div>
             </form>
         </section>
@@ -343,6 +349,9 @@
                 </div>
                 <div class="mt-4 text-end">
                     <button type="submit" class="btn btn-success">Enviar Evaluación</button>
+                    <button type="button" class="btn btn-sm btn-outline-info mb-3" data-bs-toggle="modal" data-bs-target="#modalConsejosPDF">
+  <i class="bi bi-question-circle"></i> Ver requisitos de escaneo
+</button>
                 </div>
             </form>
         </section>
@@ -351,6 +360,94 @@
     </div>
   </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+ <!-- MODAL DE RECOMENDACIONES DE ESCANEO (ADVERTENCIA INICIAL) -->
+<div class="modal fade" id="modalConsejosPDF" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg"> <!-- modal-lg para que sea ancho y legible -->
+    <div class="modal-content shadow-lg border-0">
+      
+      <!-- Cabecera: Color Informativo -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-info-circle-fill me-2"></i> Antes de iniciar su solicitud
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body p-4">
+        
+        <!-- Alerta de Límites -->
+        <div class="alert alert-warning border-warning d-flex align-items-center" role="alert">
+          <i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
+          <div>
+            <strong>Límites del Sistema:</strong><br>
+            Para garantizar el envío exitoso, el sistema tiene las siguientes restricciones de peso:
+            <ul class="mb-0 mt-1">
+              <li>Máximo por archivo individual: <strong>5 MB</strong></li>
+              <li>Máximo acumulado (suma de todos los archivos): <strong>25 MB</strong></li>
+            </ul>
+          </div>
+        </div>
+
+        <h6 class="fw-bold text-dark mt-4 mb-3">¿Cómo evitar errores de subida?</h6>
+        
+        <div class="row g-3">
+          <!-- Consejo 1: Resolución -->
+          <div class="col-md-6">
+            <div class="d-flex">
+              <div class="me-3">
+                <i class="bi bi-aspect-ratio fs-2 text-secondary"></i>
+              </div>
+              <div>
+                <p class="fw-bold mb-1">Resolución de Escaneo</p>
+                <p class="small text-muted text-justify">
+                  Configure su escáner en calidad <strong>"Documento" o 150 DPI</strong>. Evite usar "Calidad Fotográfica" o 300+ DPI, ya que genera archivos innecesariamente pesados que el sistema rechazará.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Consejo 2: Color vs Blanco y Negro -->
+          <div class="col-md-6">
+            <div class="d-flex">
+              <div class="me-3">
+                <i class="bi bi-palette fs-2 text-secondary"></i>
+              </div>
+              <div>
+                <p class="fw-bold mb-1">Color vs. Escala de Grises</p>
+                <p class="small text-muted text-justify">
+                  Si el documento no requiere color, escanee en <strong>Escala de Grises o Blanco y Negro</strong>. Esto reduce el peso del archivo hasta en un 70%.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Consejo 3: Herramientas -->
+          <div class="col-md-12">
+            <div class="d-flex">
+              <div class="me-3">
+                <i class="bi bi-file-earmark-zip fs-2 text-secondary"></i>
+              </div>
+              <div>
+                <p class="fw-bold mb-1">Si sus archivos son muy pesados:</p>
+                <p class="small text-muted mb-0">
+                  Utilice herramientas de compresión PDF antes de subir sus documentos. Si tomó fotos con el celular, conviértalas a PDF comprimido.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer bg-light border-0">
+        <button type="button" class="btn btn-primary px-4 fw-bold" data-bs-dismiss="modal">
+          Entendido, continuar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
   <script>
     // --- NAVEGACIÓN ---
     function mostrarPantalla(pantalla) {
@@ -498,8 +595,12 @@
               mostrarDocsStandard: false,
               mostrarDocRespaldo: true
           });
+          //suplente
+          html += generarHTMLReferente("Referente Suplente de Farmacovigilancia", "suplente", true, prefix);
+
           // Referente Local (Normal)
           html += generarHTMLReferente("Referente Local de Farmacovigilancia", "local", true, prefix);
+          
       } 
       
       // --- CASO FARMACIA ---
@@ -522,21 +623,25 @@
       }
 
       // --- ESAVI ---
-      if (tipo === 'Institucional' || tipo === 'Botiquin') {
-        html += generarHTMLReferente("Referente ESAVI de Farmacovigilancia", "esavi", true, prefix);
+      if (tipo === 'Institucional') {
+        html += generarHTMLReferente("Referente Responsable ESAVI  Institucional de Farmacovigilancia", "esavi", true, prefix);
+      }
+
+      if ( tipo === 'Botiquin') {
+        html += generarHTMLReferente("Referente Responsable ESAVI  de Farmacovigilancia", "esavi", true, prefix);
       }
 
       // --- PRESTADOR (Check Vacunas) ---
       if (tipo === 'Prestador') {
          html += `
-         <div class="form-check my-3 p-3 bg-white border rounded shadow-sm" id="div_check_vacunas">
+         <div class="form-check my-3 p-3 bg-warning border rounded shadow-sm" id="div_check_vacunas">
             <input class="form-check-input" type="checkbox" id="${prefix}_incluyeVacunas" name="${prefix}_incluyeVacunas" onchange="toggleEsaviPrestador('${prefix}')">
             <label class="form-check-label fw-bold" for="${prefix}_incluyeVacunas">
-               ¿Incluye manejo de vacunas?
+               ¿Incluye manejo de vacunas? (marque la casilla de la izquierda si es así)
             </label>
          </div>
          <div id="container_${prefix}_esavi" class="d-none">
-            ${generarHTMLReferente("Referente ESAVI de Farmacovigilancia", "esavi", true, prefix)}
+            ${generarHTMLReferente("Referente Responsable ESAVI de Farmacovigilancia", "esavi", true, prefix)}
          </div>
          `;
       }
@@ -700,14 +805,21 @@
 function validarArchivosPDF(form) {
         const inputsFile = form.querySelectorAll('input[type="file"]');
         
-        // LIMITES
-        const LIMITE_INDIVIDUAL_MB = 4; // Ningún archivo puede pesar más de esto
-        const LIMITE_TOTAL_MB = 20;     // La suma de todos no puede pasar de esto
-        
-        const BYTES_INDIVIDUAL = LIMITE_INDIVIDUAL_MB * 1024 * 1024;
-        const BYTES_TOTAL = LIMITE_TOTAL_MB * 1024 * 1024;
+        // --- CONFIGURACIÓN DINÁMICA DE LÍMITES ---
+        let limiteIndividualMB = 5; // Por defecto (Nuevo Ingreso)
+        const limiteTotalMB = 25;   // La bolsa total siempre es 25MB por seguridad del servidor
 
-        let pesoAcumulado = 0; // Aquí iremos sumando
+        // Si es Subsanación o Atestados, permitimos archivos más grandes individuales
+        // porque suelen subir uno solo.
+        if (form.id === 'formSubsanacion' || form.id === 'formAtestados') {
+            limiteIndividualMB = 25; 
+        }
+
+        // Convertir a Bytes
+        const BYTES_INDIVIDUAL = limiteIndividualMB * 1024 * 1024;
+        const BYTES_TOTAL = limiteTotalMB * 1024 * 1024;
+
+        let pesoAcumulado = 0; 
 
         for (let input of inputsFile) {
             if (input.files.length > 0) {
@@ -721,29 +833,33 @@ function validarArchivosPDF(form) {
                         return false; 
                     } 
                     
-                    // 2. VALIDAR TAMAÑO INDIVIDUAL (4 MB)
+                    // 2. VALIDAR TAMAÑO INDIVIDUAL (Dinámico)
                     if (file.size > BYTES_INDIVIDUAL) {
                         let pesoArchivo = (file.size / 1024 / 1024).toFixed(2);
-                        mostrarError(`⚠️ <strong>ARCHIVO MUY PESADO</strong><br><br>El archivo "<em>${file.name}</em>" pesa <strong>${pesoArchivo} MB</strong>.<br>El máximo individual es <strong>${LIMITE_INDIVIDUAL_MB} MB</strong>.<br><br>Por favor, comprímalo.`);
+                        mostrarError(`⚠️ <strong>ARCHIVO MUY PESADO</strong><br><br>
+                        El archivo "<em>${file.name}</em>" pesa <strong>${pesoArchivo} MB</strong>.<br>
+                        Para este tipo de trámite, el máximo permitido por archivo es de <strong>${limiteIndividualMB} MB</strong>.<br><br>
+                        Por favor, comprímalo.`);
+                        
                         input.value = ''; 
                         input.classList.add('is-invalid'); 
                         return false;
                     }
 
-                    // Si pasa, sumamos al total
+                    // Sumamos al total
                     pesoAcumulado += file.size;
                     input.classList.remove('is-invalid');
                 }
             }
         }
 
-        // 3. VALIDAR TAMAÑO TOTAL (LA BOLSA)
+        // 3. VALIDAR TAMAÑO TOTAL
         if (pesoAcumulado > BYTES_TOTAL) {
             let totalMB = (pesoAcumulado / 1024 / 1024).toFixed(2);
             mostrarError(`⚠️ <strong>EXCESO DE TAMAÑO TOTAL</strong><br><br>
-            Está intentando enviar <strong>${totalMB} MB</strong> en total entre todos los documentos.<br>
-            El sistema permite un máximo de <strong>${LIMITE_TOTAL_MB} MB</strong> por solicitud para garantizar el envío.<br><br>
-            <strong>Solución:</strong> Utilice herramientas como "iLovePDF" o "SmallPDF" para comprimir sus archivos antes de subirlos.`);
+            La suma de todos los archivos es <strong>${totalMB} MB</strong>.<br>
+            El sistema permite un máximo total de <strong>${limiteTotalMB} MB</strong> por envío.<br><br>
+            Si está enviando múltiples archivos pesados, intente comprimirlos.`);
             return false;
         }
 
@@ -929,11 +1045,34 @@ function validarAtestadosOCarta(form) {
         })
         .procesarFormulario(form);
     }
+   
+
+// Mostrar advertencia de archivos al cargar la página
+    window.addEventListener('load', function() {
+        const modalConsejos = new bootstrap.Modal(document.getElementById('modalConsejosPDF'));
+        modalConsejos.show();
+        
+        // También activamos los tooltips aquí mismo
+        activarTooltips();
+    });
 
     // --- FUNCIÓN PARA ACTIVAR LOS MENSAJES (TOOLTIPS) ---
+    
     function activarTooltips() {
       const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+      
+      // Limpiamos los tooltips anteriores para evitar duplicados si se regenera el formulario
+      tooltipTriggerList.forEach(el => {
+          const instance = bootstrap.Tooltip.getInstance(el);
+          if (instance) instance.dispose();
+      });
+
+      // Creamos los nuevos configurados SOLO para 'hover'
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => 
+        new bootstrap.Tooltip(tooltipTriggerEl, {
+            trigger: 'hover' // <--- ESTO SOLUCIONA EL PROBLEMA
+        })
+      );
     }
 
     // Activar al cargar la página por primera vez
