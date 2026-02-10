@@ -17,6 +17,108 @@ const MAPA_DICTAMENES = {
 
   "Institucional": "dictamen_5"
 };
+// --- CONFIGURACIÓN MAESTRA DE CELDAS POR DICTAMEN ---
+// dónde se escribe cada dato para cada archivo específico.
+const COORDENADAS_DICTAMENES = {
+  
+  // PARA FARMACIAS Y PRESTADORES (Solo Titular)
+  "dictamen_1": {
+    fecha: "I11",               // Fecha
+    correlativo: "B11",         // RFV-2026...
+
+    //solicitante: "B10",        // Nombre quien firma
+    //cargo: "B11",              // Cargo quien firma
+
+    tipoEstablecimiento: "D13",
+    linkCarpeta: "D15", 
+
+    nombreTitular: "C20",      // Nombre del profesional titular
+    jvTitular: "J20"           // JVPM del titular
+  },
+
+  // PARA DROGUERÍAS, LABS Y TRS NACIONAL (Titular + Suplente)
+  "dictamen_2": {
+    fecha: "I11",
+    correlativo: "B11",
+
+    //solicitante: "B10",
+    //cargo: "B11",
+
+    tipoEstablecimiento: "D13",
+    linkCarpeta: "D16", 
+
+    nombreTitular: "C20",
+    jvTitular: "J20",
+
+    nombreSuplente: "C61",     // <--- Celda del Suplente
+    jvSuplente: "J61"
+  },
+
+  // PARA TRS EXTRANJERO (Titular + Local)
+  "dictamen_3": {
+    
+    fecha: "I11",               // Ejemplo: Quizás aquí la fecha está en otro lado
+    correlativo: "B11",
+
+    //solicitante: "A10",
+    //cargo: "A11",
+    tipoEstablecimiento: "D13",
+    linkCarpeta: "D15",
+
+    nombreTitular: "C20",      // Titular Internacional
+
+    nombreSuplente: "C59",     // <--- Celda del Suplente
+    jvSuplente: "J59",
+
+    nombreLocal: "C109",        // <--- Celda del Referente Local
+    jvLocal: "J109"
+
+
+  },
+
+  // PARA BOTIQUINES (Titular + ESAVI)
+  "dictamen_4": {
+
+    fecha: "I11",
+    correlativo: "B11",
+
+    //solicitante: "B10",
+    //cargo: "B11",
+    tipoEstablecimiento: "D13",
+    linkCarpeta: "D16",
+
+    nombreTitular: "C21",
+    jvTitular: "J21",
+
+    nombreSuplente: "C59",     // <--- Celda del Suplente
+    jvSuplente: "J59",
+
+    nombreEsavi: "C108",        // <--- Celda del ESAVI
+    jvEsavi: "J108"
+  },
+
+  // PARA INSTITUCIONAL (Titular + Suplente + ESAVI)
+  "dictamen_5": {
+
+    fecha: "I11",
+    correlativo: "B11",
+
+    //solicitante: "B10",
+    //cargo: "B11",
+
+    tipoEstablecimiento: "D13",
+    linkCarpeta: "D15",
+
+    nombreTitular: "C20",
+    jvTitular: "j20",
+
+    nombreSuplente: "C59",
+    jvSuplente: "j59",
+
+    nombreEsavi: "C107",
+    jvEsavi: "j107"
+  }
+};
 
 function doGet() {
   return HtmlService.createTemplateFromFile('Index')
@@ -57,7 +159,19 @@ function procesarFormulario(formObject) {
       const carpetaTramite = parentFolder.createFolder(nuevoCorrelativo);
       const urlCarpeta = carpetaTramite.getUrl();
 
-      copiarDictamen(formObject.ni_tipoEstablecimiento, carpetaTramite);
+
+      // A. Obtener nombre base del archivo según el mapa
+      const nombreArchivoBase = MAPA_DICTAMENES[formObject.ni_tipoEstablecimiento];
+
+      // B. Copiar dictamen y OBTENER SU ID (Solo una vez)
+      const idDictamenNuevo = copiarDictamen(formObject.ni_tipoEstablecimiento, carpetaTramite);
+
+      // C. Llenar el dictamen recién creado
+      if (idDictamenNuevo && nombreArchivoBase) {
+         llenarDictamen(idDictamenNuevo, formObject, nuevoCorrelativo, nombreArchivoBase, urlCarpeta);
+      } else {
+         console.log("No se pudo llenar el dictamen: ID o Nombre base faltante.");
+      }
 
       const urlFormulario = subirArchivo(formObject.file_ni_nombramiento, carpetaTramite, "NI_Formulario_" + nuevoCorrelativo);
       const titular = obtenerDatosRol(formObject, carpetaTramite, 'ni', 'titular');
@@ -203,7 +317,7 @@ function enviarCorreoConfirmacion(emailDestino, tipoTramite, correlativo, nombre
       <div style="font-family: Arial, sans-serif; color: #333;">
         <h3>Estimado Usuario/a ${nombre || ''},</h3>
         <p>Trámite de <strong>${tipoTramite}</strong> registrado exitosamente.</p>
-        <p>Expediente: <strong>${correlativo}</strong></p>
+        <p>Solicitud: <strong>${correlativo}</strong></p>
         <hr><small>Mensaje automático SRS.</small>
       </div>`;
   try { MailApp.sendEmail({ to: emailDestino, subject: asunto, htmlBody: cuerpo }); } catch (e) { console.log(e.message); }
@@ -222,11 +336,23 @@ function obtenerSiguienteCorrelativoMemoria() {
 function copiarDictamen(tipoEstablecimiento, carpetaDestino) {
   try {
     const nombreArchivo = MAPA_DICTAMENES[tipoEstablecimiento];
-    if (!nombreArchivo) return;
+    if (!nombreArchivo) return null;
+
     const carpetaFuente = DriveApp.getFolderById(ID_FOLDER_DICTAMENES);
     const archivos = carpetaFuente.getFilesByName(nombreArchivo);
-    if (archivos.hasNext()) archivos.next().makeCopy("Dictamen_Para_Llenar", carpetaDestino);
-  } catch (e) { console.log(e.message); }
+    
+    if (archivos.hasNext()) {
+      const archivoOriginal = archivos.next();
+      // Copiar
+      const archivoCopia = archivoOriginal.makeCopy("Dictamen_Para_Llenar", carpetaDestino);
+      
+      // ¡ESTA LÍNEA ES VITAL! Sin ella, no podemos llenar el archivo
+      return archivoCopia.getId(); 
+    }
+  } catch (e) { 
+    console.log("Error copiando dictamen: " + e.message); 
+    return null;
+  }
 }
 
 function subirArchivo(blob, folder, nombreBase) {
@@ -279,4 +405,78 @@ function obtenerDatosRol(form, folder, prefix, rol) {
     urlCarnet: carnetFinal, 
     urlCarta: urlCarta
   };
+}
+
+// llena los dictamenes de acuerdo al tipo de establecimiento
+function llenarDictamen(idArchivo, formObject, correlativo, nombreArchivoBase, urlCarpeta) {
+  try {
+    const ss = SpreadsheetApp.openById(idArchivo);
+    const hoja = ss.getSheets()[0]; 
+
+    const mapa = COORDENADAS_DICTAMENES[nombreArchivoBase];
+    if (!mapa) return;
+
+    // --- FUNCIÓN HELPER PARA EVITAR ERRORES ---
+    // Convierte a mayúsculas si existe texto, si no, devuelve vacío ""
+    const safeUpper = (texto) => (texto ? String(texto).toUpperCase() : "");
+
+    // 1. DATOS GENERALES
+    if (mapa.fecha)       hoja.getRange(mapa.fecha).setValue(formObject.ni_fecha);
+    if (mapa.correlativo) hoja.getRange(mapa.correlativo).setValue(correlativo);
+    
+    // Aquí solía fallar si ni_nombreSolicitante era undefined
+    if (mapa.solicitante) hoja.getRange(mapa.solicitante).setValue(safeUpper(formObject.ni_nombreSolicitante));
+    if (mapa.cargo)       hoja.getRange(mapa.cargo).setValue(safeUpper(formObject.ni_cargoSolicitante));
+
+    // 2. DATOS NUEVOS (Link y Tipo)
+    if (mapa.tipoEstablecimiento) hoja.getRange(mapa.tipoEstablecimiento).setValue(safeUpper(formObject.ni_tipoEstablecimiento));
+    if (mapa.linkCarpeta && urlCarpeta) hoja.getRange(mapa.linkCarpeta).setValue(urlCarpeta);
+
+    // 3. REFERENTES (Titular)
+    // Verificamos si existe la coordenada Y si existe el dato
+    if (mapa.nombreTitular) {
+        // Probamos con las dos posibles claves (por si acaso hubo error de dedo)
+        const val = formObject.ni_nombre_titular || "";
+        hoja.getRange(mapa.nombreTitular).setValue(safeUpper(val));
+    }
+    if (mapa.jvTitular) {
+        const val = formObject.ni_jv_titular || "";
+        hoja.getRange(mapa.jvTitular).setValue(val);
+    }
+
+    // 4. SUPLENTE
+    if (mapa.nombreSuplente) {
+        const val = formObject.ni_nombre_suplente || "";
+        hoja.getRange(mapa.nombreSuplente).setValue(safeUpper(val));
+    }
+    if (mapa.jvSuplente) {
+        const val = formObject.ni_jv_suplente || "";
+        hoja.getRange(mapa.jvSuplente).setValue(val);
+    }
+
+    // 5. ESAVI
+    if (mapa.nombreEsavi) {
+        const val = formObject.ni_nombre_esavi || "";
+        hoja.getRange(mapa.nombreEsavi).setValue(safeUpper(val));
+    }
+    if (mapa.jvEsavi) {
+        const val = formObject.ni_jv_esavi || "";
+        hoja.getRange(mapa.jvEsavi).setValue(val);
+    }
+
+    // 6. LOCAL
+    if (mapa.nombreLocal) {
+        const val = formObject.ni_nombre_local || "";
+        hoja.getRange(mapa.nombreLocal).setValue(safeUpper(val));
+    }
+    if (mapa.jvLocal) {
+        const val = formObject.ni_jv_local || "";
+        hoja.getRange(mapa.jvLocal).setValue(val);
+    }
+
+    SpreadsheetApp.flush();
+
+  } catch (e) {
+    console.log("Error crítico llenando dictamen: " + e.message);
+  }
 }
