@@ -1,7 +1,6 @@
 // --- CONFIGURACIÓN DE IDs ---
 const ID_FOLDER_GESTION     = "1duuPt6vgjtJsy1HIh062vD1YdqJ3p6Lm";
-//const ID_FOLDER_SUBSANACION = "1nrhlmxEA9fwFfni6yyxgqXEmsi_uVeai";
-//const ID_FOLDER_ATESTADOS   = "1592GAYi7AruWEGHFwhYGEpGvnwr4a_XQ";
+
 const ID_FOLDER_DICTAMENES  = "1Isb_1gtt1_uNA0hDA2m4j2lJ0ijQGfdv";
 
 const ID_SHEET = "1ESor7hY9VI-oxkXofm-tGAffjWN4iQ1krInICrFeLWA";
@@ -226,7 +225,7 @@ function procesarFormulario(formObject) {
 
       // 2. Seguridad: Si la lista está vacía, agregamos uno genérico para que se guarde al menos una fila
       if (listaNombres.length === 0) {
-         // Si tenías un campo manual de respaldo, úsalo aquí, si no:
+         
          listaNombres.push("NOMBRE NO ESPECIFICADO"); 
       }
 
@@ -240,7 +239,7 @@ function procesarFormulario(formObject) {
           let filaIndividual = [...filaBase];
           
           // ASIGNAMOS EL NOMBRE EN LA COLUMNA G (Índice 10)
-          // Asegúrate que en tu Excel la Columna G sea "Nombre Establecimiento"
+          
           filaIndividual[12] = nombreEstab; 
 
           bloqueDeFilas.push(filaIndividual);
