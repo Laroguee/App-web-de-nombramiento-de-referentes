@@ -1,668 +1,1304 @@
-// --- CONFIGURACIÓN DE IDs ---
-const ID_FOLDER_GESTION     = "1duuPt6vgjtJsy1HIh062vD1YdqJ3p6Lm";
-
-const ID_FOLDER_DICTAMENES  = "1Isb_1gtt1_uNA0hDA2m4j2lJ0ijQGfdv";
-
-const ID_SHEET = "1ESor7hY9VI-oxkXofm-tGAffjWN4iQ1krInICrFeLWA";
-
-const MAPA_DICTAMENES = {
-  "Farmacia": "dictamen_1", "Prestador": "dictamen_1",
-
-  "Drogueria": "dictamen_2", "Laboratorio": "dictamen_2", "TRS_Nacional": "dictamen_2",
-
-  "TRS_Extranjero": "dictamen_3",
-
-  "Botiquin": "dictamen_4", "Institucional_Local": "dictamen_4",
-
-  "Institucional": "dictamen_5"
-};
-// --- CONFIGURACIÓN MAESTRA DE CELDAS POR DICTAMEN ---
-// dónde se escribe cada dato para cada archivo específico.
-const COORDENADAS_DICTAMENES = {
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Superintendencia de Regulación Sanitaria - Gestión de Referentes de Farmacovigilancia</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Iconos -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   
-  // PARA FARMACIAS Y PRESTADORES (Solo Titular)
-  "dictamen_1": {
-    fecha: "I11",               // Fecha
-    correlativo: "B11",         // RFV-2026...
-
-    //solicitante: "B10",        // Nombre quien firma
-    //cargo: "B11",              // Cargo quien firma
-
-    tipoEstablecimiento: "D13",
-    linkCarpeta: "D15", 
-
-    nombreTitular: "C20",      // Nombre del profesional titular
-    jvTitular: "J20"           // JVPM del titular
-  },
-
-  // PARA DROGUERÍAS, LABS Y TRS NACIONAL (Titular + Suplente)
-  "dictamen_2": {
-    fecha: "I11",
-    correlativo: "B11",
-
-    //solicitante: "B10",
-    //cargo: "B11",
-
-    tipoEstablecimiento: "D13",
-    linkCarpeta: "D16", 
-
-    nombreTitular: "C20",
-    jvTitular: "J20",
-
-    nombreSuplente: "C61",     // <--- Celda del Suplente
-    jvSuplente: "J61"
-  },
-
-  // PARA TRS EXTRANJERO (Titular + Local)
-  "dictamen_3": {
+  <style>
+    /* ... (Mismos estilos de siempre) ... */
+    :root { --color-primary: #003366; --color-secondary: #0056b3; --bg-overlay: rgba(255, 255, 255, 0.98); }
+    body { background-image: url('https://res.cloudinary.com/dowejnpvd/image/upload/v1769541332/fondo_srs_nhzesc.png'); background-size: cover; background-attachment: fixed; background-position: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100vh; padding-bottom: 50px; }
+    .main-container { background-color: var(--bg-overlay); border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); margin-top: 40px; margin-bottom: 40px; padding: 40px; border-top: 6px solid var(--color-primary); }
+    .header-logo { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
+    .header-logo img { max-height: 90px; margin-bottom: 15px; }
+    h2, h4 { color: var(--color-primary); font-weight: 700; }
+    .section-title { border-left: 5px solid var(--color-secondary); padding-left: 15px; margin-top: 30px; margin-bottom: 20px; color: var(--color-primary); background-color: #f8f9fa; padding-top: 10px; padding-bottom: 10px; border-radius: 0 5px 5px 0; }
+    .btn-primary { background-color: var(--color-primary); border-color: var(--color-primary); }
+    .btn-primary:hover { background-color: var(--color-secondary); }
+    .card-menu { cursor: pointer; transition: all 0.3s ease; border: 1px solid #e0e0e0; height: 100%; background: white; }
+    .card-menu:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0,50,100,0.15); border-color: var(--color-secondary); }
+    .card-menu i { font-size: 3.5rem; margin-bottom: 15px; display: block; }
+    .d-none { display: none !important; }
+    #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 51, 102, 0.9); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; backdrop-filter: blur(5px); }
+    .checkbox-card { background-color: #f1f8ff; border: 1px solid #cce5ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
     
-    fecha: "I11",               // Ejemplo: Quizás aquí la fecha está en otro lado
-    correlativo: "B11",
+    /* Nuevo estilo para sección de documentos dentro de la tarjeta */
+    .docs-section {
+        background-color: #f8f9fa;
+        border-top: 1px solid #eee;
+        padding: 15px;
+        margin-top: 15px;
+        border-radius: 0 0 5px 5px;
+    }
+  </style>
+</head>
+<body>
 
-    //solicitante: "A10",
-    //cargo: "A11",
-    tipoEstablecimiento: "D13",
-    linkCarpeta: "D15",
+  <div id="loadingOverlay" class="d-none">
+    <div class="spinner-border text-light" style="width: 4rem; height: 4rem;" role="status"></div>
+    <h3 class="mt-4">Enviando solicitud...</h3>
+    <p class="lead">Por favor, espere un momento.</p>
+  </div>
 
-    nombreTitular: "C20",      // Titular Internacional
+  <!-- VENTANA MODAL DE ÉXITO  -->
+<div class="modal fade" id="modalExito" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center shadow-lg border-0">
+      
+      <!-- Cabecera Verde -->
+      <div class="modal-header bg-success text-white justify-content-center border-0">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-check-circle-fill me-2"></i> Trámite Registrado
+        </h5>
+      </div>
 
-    nombreSuplente: "C59",     // <--- Celda del Suplente
-    jvSuplente: "J59",
+      <!-- Cuerpo del Mensaje -->
+      <div class="modal-body p-4">
+        <p class="lead mb-2" id="modalMensajePrincipal">Su solicitud ha sido procesada.</p>
+        
+        <!-- Aquí mostraremos el Código -->
+        <div id="modalSeccionCodigo" class="d-none bg-light p-3 rounded border mt-3">
+          <p class="small text-muted mb-1 text-uppercase fw-bold">Su número de gestión es:</p>
+          <h2 class="text-primary fw-bold mb-0" id="modalCodigoTexto">RFV-0000-0000</h2>
+        </div>
 
-    nombreLocal: "C109",        // <--- Celda del Referente Local
-    jvLocal: "J109"
+        <p class="small text-muted mt-3 mb-0">
+          <i class="bi bi-info-circle"></i> Guarde este número. Se ha creado su solicitud.
+        </p>
+        <p>Se ha enviado un correo de confirmación,revise su bandeja de spam.</p>
+      </div>
+
+      <!-- Botón de Aceptar -->
+      <div class="modal-footer justify-content-center border-0 pb-4">
+        <button type="button" class="btn btn-success px-5 py-2 fw-bold" onclick="cerrarModalYReiniciar()">
+          Aceptar y Finalizar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE ERROR (PROFESIONAL) -->
+<div class="modal fade" id="modalError" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center shadow-lg border-0">
+      
+      <!-- Cabecera Roja -->
+      <div class="modal-header bg-danger text-white justify-content-center border-0">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i> Atención
+        </h5>
+      </div>
+
+      <!-- Cuerpo del Mensaje -->
+      <div class="modal-body p-4">
+        <p class="mb-0 fs-5" id="mensajeErrorTexto">Aquí va el error</p>
+      </div>
+
+      <!-- Botón -->
+      <div class="modal-footer justify-content-center border-0 pb-4">
+        <button type="button" class="btn btn-outline-danger px-4 fw-bold" data-bs-dismiss="modal">
+          Entendido
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-10 main-container">
+        
+        <div class="header-logo">
+          <img src="https://res.cloudinary.com/dowejnpvd/image/upload/v1769541342/logo_srs_azul_apiwn3.png" alt="Logo SRS">
+          <h3>Sistema de Nombramiento de RFV</h3>
+          <p class="text-muted">Plataforma Entrada Digital</p>
+        </div>
+
+        <!-- 1. MENÚ PRINCIPAL -->
+        <section id="menuPrincipal">
+          <p class="text-center mb-5 lead fw-bold text-secondary">Seleccione el tipo de trámite que desea realizar:</p>
+          <div class="row g-4">
+            <div class="col-md-4">
+              <div class="card card-menu p-4 text-center" onclick="mostrarPantalla('nuevoIngreso')">
+                <i class="bi bi-file-earmark-plus text-primary"></i>
+                <h5 class="fw-bold">Nombramiento de Referentes de Farmacovigilancia</h5>
+                <small class="text-muted">Nuevo Nombramiento o Cambio de Referente.</small>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card card-menu p-4 text-center" onclick="mostrarPantalla('subsanacion')">
+                <i class="bi bi-pencil-square text-warning"></i>
+                <h5 class="fw-bold">Subsanación</h5>
+                <small class="text-muted">Entrega de documentos corregidos.</small>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card card-menu p-4 text-center" onclick="mostrarPantalla('atestados')">
+                <i class="bi bi-clipboard-check text-success"></i>
+                <h5 class="fw-bold">Evaluación de Atestados de Farmacovigilancia</h5>
+                <small class="text-muted">Revisión de atestados pendientes.</small>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. PANTALLA: NUEVO INGRESO -->
+        <section id="pantallaNuevoIngreso" class="d-none">
+          <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+            <h4 class="m-0"><i class="bi bi-file-earmark-plus"></i> Gestión de Referentes</h4>
+            <button class="btn btn-secondary btn-sm" onclick="volverMenu()"><i class="bi bi-arrow-left"></i> Volver al Menú</button>
+          </div>
+
+          <form id="formNuevoIngreso" onsubmit="procesarEnvioVisual(event, 'Nuevo Ingreso')">
+            <h5 class="section-title">1. Información de la Solicitud</h5>
+            <div class="mb-4">
+                <label class="form-label fw-bold text-primary">Tipo de Solicitud</label>
+                <select class="form-select border-primary" id="ni_tipoSolicitud" name="ni_tipoSolicitud" onchange="logicNuevoIngreso()" required>
+                   <option value="" selected disabled>Seleccione una opción...</option>
+                   <option value="Nuevo Nombramiento">Nuevo Nombramiento</option>
+                   <option value="Cambio de Referente">Cambio de Referente</option>
+                </select>
+            </div>
+
+            <div id="ni_restodelFormulario" class="d-none">
+                <div class="row g-3">
+                  
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Tipo de Establecimiento</label>
+                    <select class="form-select" id="ni_tipoEstablecimiento" name="ni_tipoEstablecimiento" onchange="configurarReferentesNI()" required data-bs-toggle="tooltip" title="Seleccione el rubro según su licencia de funcionamiento.">
+                      <option value="" selected disabled>Seleccione...</option>
+                      <option value="TRS_Nacional">Titular Registro Sanitario (Nacional)</option>
+                      <option value="TRS_Extranjero">Titular Registro Sanitario (Internacional)</option>
+                      <option value="Institucional">Institucional (ISSS, MINSAL, ISBM...)</option>
+                      <option value="Institucional_Local">Institucional Local (Unidades médicas, Clinicas, Hospitales...)</option>
+                      <option value="Botiquin">Botiquín</option>
+                      <option value="Drogueria">Droguería</option>
+                      <option value="Laboratorio">Laboratorio</option>
+                      <option value="Farmacia">Farmacia</option>
+                      <option value="Prestador">Prestador de Servicios de Salud</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">¿Es Conglomerado?</label>
+                    <select class="form-select" id="ni_conglomerado" name="ni_conglomerado" onchange="toggleConglomerado('ni')"data-bs-toggle="tooltip" title="Indique si hay más de una establecimiento dentro del formulario.">
+                      <option value="No">No</option>
+                      <option value="Si">Sí</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6 d-none" id="div_ni_numEstablecimientos">
+                  <label class="form-label fw-bold text-danger">Cantidad (Automático)</label>
+                  <!-- AGREGAMOS 'readonly' y un estilo de fondo gris -->
+                  <input type="number" class="form-control bg-light" 
+                  id="ni_cantidadEstablecimientos" name="ni_cantidadEstablecimientos" 
+                  min="1" value="1" readonly 
+                  data-bs-toggle="tooltip" title="Este número se calcula automáticamente según la lista de nombres agregados abajo.">
+                  </div>
+                  <!-- GESTOR DE NOMBRES DE ESTABLECIMIENTOS -->
+                  <div class="col-12 mt-3 p-3 bg-light border rounded">
+                  <label class="form-label fw-bold text-primary">Nombres de los Establecimientos</label>
+                  <p class="small text-muted mb-2">Ingrese los nombres uno por uno y presione "Agregar".</p>
+  
+                  <div class="input-group mb-2">
+                  <input type="text" class="form-control" id="input_nombre_temporal" placeholder="Ej: Farmacia San Nicolás 1">
+                  <button type="button" class="btn btn-secondary" onclick="agregarNombreManual()">
+                   <i class="bi bi-plus-lg"></i> Agregar a la lista
+                  </button>
+                  </div>
+
+                <!-- Aquí se visualiza la lista -->
+                <ul class="list-group mb-0" id="visual_lista_nombres">
+                <!-- Se llenará dinámicamente -->
+                </ul>
+  
+                <!-- Campo oculto que enviará los datos al servidor -->
+                <input type="hidden" id="ni_lista_nombres_final" name="ni_lista_nombres_final">
+                </div>
+
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Nombre del Solicitante</label>
+                    <input type="text" class="form-control" id="ni_nombreSolicitante" name="ni_nombreSolicitante" maxlength="100" required
+                    data-bs-toggle="tooltip" data-bs-placement="top" 
+                     title="Escriba el nombre completo tal como aparece en el DUI/Carnet.">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Cargo del Solicitante</label>
+                     <!-- CAMBIO: Ahora es un SELECT -->
+                    <select class="form-select" id="ni_cargoSolicitante" name="ni_cargoSolicitante" required data-bs-toggle="tooltip" 
+                    title="Seleccione el cargo según la persona jurídica.">
+                   <option value="" selected disabled>Seleccione primero el tipo de establecimiento...</option>
+                  </select>
+                  </div>
+                  
+                  <!-- SECCIÓN CORREOS (NUEVO INGRESO) -->
+<div class="col-md-12 mt-3">
+  <label class="form-label fw-bold text-success">Correo para Notificaciones (Principal)</label>
+  <div class="input-group mb-2">
+    <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+    <input type="email" class="form-control" id="ni_email" name="ni_email" required placeholder="principal@institucion.com" data-bs-toggle="tooltip" title="Correo principal obligatorio.">
+    <button type="button" class="btn btn-outline-secondary" onclick="agregarCorreoExtra('ni')" id="btn_add_ni">
+      <i class="bi bi-plus-circle"></i> Agregar otro
+    </button>
+  </div>
+  
+  <!-- Correos Extra (Ocultos por defecto) -->
+  <div id="container_emails_ni">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="ni_email_2" name="ni_email_2" placeholder="Correo adicional 1">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="ni_email_3" name="ni_email_3" placeholder="Correo adicional 2">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="ni_email_4" name="ni_email_4" placeholder="Correo adicional 3">
+  </div>
+  <small class="text-muted">Puede agregar hasta 3 correos adicionales.</small>
+</div>
+              </div>
+
+                <div id="ni_selectorCambio" class="checkbox-card mt-4 d-none">
+                    <p class="mb-2 fw-bold text-primary"><i class="bi bi-check2-square"></i> Seleccione el/los referentes que desea cambiar:</p>
+                    <div id="ni_checkboxesContainer"></div>
+                 </div>
+
+                <!-- SECCIÓN REFERENTES (Aquí se generarán las tarjetas con los inputs de archivos dentro) -->
+                <div id="ni_seccionReferentes" class="mt-4"></div>
+
+                <!-- DOCUMENTACIÓN GLOBAL -->
+                <h5 class="section-title">3. Documentación General</h5>
+                <div class="alert alert-light border small text-muted">
+                    <i class="bi bi-info-circle"></i> Documento único por solicitud. Formato PDF.
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-12">
+                    <label class="form-label fw-bold">Formulario de Nombramiento (PDF)</label>
+                    <input type="file" class="form-control" accept=".pdf" required id="file_ni_nombramiento" name="file_ni_nombramiento"
+                    data-bs-toggle="tooltip" title="Formulario de nombramiento de referentes de farmacovigilancia y sus modificaciones">
+                  </div>
+                </div>
+
+                <div class="mt-5 text-end border-top pt-3">
+                  <button type="button" class="btn btn-outline-danger me-2" onclick="volverMenu()">Cancelar</button>
+                  <button type="submit" class="btn btn-primary btn-lg px-5">
+                     Enviar Solicitud <i class="bi bi-send-fill ms-2"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-info mb-3" data-bs-toggle="modal" data-bs-target="#modalConsejosPDF">
+  <i class="bi bi-question-circle"></i> Ver requisitos de escaneo
+</button>
+                </div>
+            </div>
+          </form>
+        </section>
+
+        <!-- 3. PANTALLA: SUBSANACIÓN -->
+        <section id="pantallaSubsanacion" class="d-none">
+            <!-- (Contenido igual, resumido para brevedad) -->
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                <h4 class="m-0"><i class="bi bi-pencil-square"></i> Subsanación</h4>
+                <button class="btn btn-secondary btn-sm" onclick="volverMenu()"><i class="bi bi-arrow-left"></i> Volver al Menú</button>
+            </div>
+            <form id="formSubsanacion" onsubmit="procesarEnvioVisual(event, 'Subsanacion')">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">No. Solicitud  </label>
+                        <input type="text" class="form-control" id="sub_correlativo" name="sub_correlativo"  required 
+                        data-bs-toggle="tooltip" title="correlativo de solicitud que se le brindo al realizar el nombramiento de referentes (Ej: RFV-2026-0030)" required placeholder="RFV-0000-0000">
+                    </div>
+                    
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Tipo Establecimiento</label>
+                        <select class="form-select" id="sub_tipoEstablecimiento" name="sub_tipoEstablecimiento" onchange="actualizarCargos('sub')" required>
+                        <!-- ... tus opciones ... -->
+	                    <option value="" selected disabled>Seleccione...</option>
+                      <option value="TRS_Nacional">Titular Registro Sanitario (Nacional)</option>
+                      <option value="TRS_Extranjero">Titular Registro Sanitario (Internacional)</option>
+                      <option value="Institucional">Institucional (ISSS, MINSAL, ISBM...)</option>
+                      <option value="Institucional_Local">Institucional Local (Unidades médicas, Clinicas, Hospitales...)</option>
+                      <option value="Botiquin">Botiquín</option>
+                      <option value="Drogueria">Droguería</option>
+                      <option value="Laboratorio">Laboratorio</option>
+                      <option value="Farmacia">Farmacia</option>
+                      <option value="Prestador">Prestador de Servicios de Salud</option>
+                      </select>       
+                    </div>
+
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Nombre Solicitante</label>
+                        <input type="text" class="form-control" id="sub_nombreSolicitante" name="sub_nombreSolicitante" required
+                        data-bs-toggle="tooltip" data-bs-placement="top" 
+                     title="Escriba el nombre completo tal como aparece en el DUI/Carnet.">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Cargo del Solicitante</label>
+                         <!-- CAMBIO: Ahora es un SELECT -->
+                         <select class="form-select" id="sub_cargoSolicitante" name="sub_cargoSolicitante" required>
+                         <option value="" selected disabled>Seleccione primero el tipo de establecimiento...</option>
+                          </select>
+                    </div>
+                    <div class="col-12 mt-3">
+  <label class="form-label fw-bold text-success">Correo para Notificaciones</label>
+  <div class="input-group mb-2">
+    <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+    <input type="email" class="form-control" id="sub_email" name="sub_email" required placeholder="principal@institucion.com">
+    <button type="button" class="btn btn-outline-secondary" onclick="agregarCorreoExtra('sub')" id="btn_add_sub">
+      <i class="bi bi-plus-circle"></i> Agregar
+    </button>
+  </div>
+  <div id="container_emails_sub">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="sub_email_2" name="sub_email_2" placeholder="Adicional 1">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="sub_email_3" name="sub_email_3" placeholder="Adicional 2">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="sub_email_4" name="sub_email_4" placeholder="Adicional 3">
+  </div>
+</div>
+                    <div class="col-12 mt-3">
+                        <label class="form-label fw-bold">Adjuntar Documentos (PDF)</label>
+                        <input type="file" class="form-control" id="file_sub_documentos" name="file_sub_documentos" accept=".pdf" required>
+                    </div>
+                </div>
+                <div class="mt-4 text-end">
+                    <button type="submit" class="btn btn-warning text-white">Enviar Subsanación</button>
+                  <button type="button" class="btn btn-sm btn-outline-info mb-3" data-bs-toggle="modal" data-bs-target="#modalConsejosPDF">
+  <i class="bi bi-question-circle"></i> Ver requisitos de escaneo
+</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 4. PANTALLA: ATESTADOS -->
+        <section id="pantallaAtestados" class="d-none">
+           <!-- (Contenido igual, resumido para brevedad) -->
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                <h4 class="m-0"><i class="bi bi-clipboard-check"></i> Evaluación Atestados</h4>
+                <button class="btn btn-secondary btn-sm" onclick="volverMenu()"><i class="bi bi-arrow-left"></i> Volver al Menú</button>
+            </div>
+            <form id="formAtestados" onsubmit="procesarEnvioVisual(event, 'Atestados')">
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="fw-bold">N. Solicitud</label><input type="text" class="form-control" name="at_correlativo" required
+                    data-bs-toggle="tooltip" title="correlativo de solicitud que se le brindo al realizar el nombramiento de referentes (Ej: RFV-2026-0030)" required placeholder="RFV-0000-0000"></div>
+
+                  
+                    
+                    <div class="col-6"><label class="fw-bold">Tipo Referente</label><select class="form-select" name="at_tipoReferente"><option>Titular</option><option>Suplente</option><option>ESAVI</option><option>Local</option></select></div>
+                    <div class="col-6"><label class="fw-bold">Correlativo Ref.</label><input type="text" class="form-control" name="at_correlativoReferente" required
+                    data-bs-toggle="tooltip" title="Correlativo de nombramiento de referente (Ej: RFT-2026-000, RFS-2026-000...)"></div>
+                  <div class="col-12 mt-3">
+  <label class="form-label fw-bold text-success">Correo para Notificaciones</label>
+  <div class="input-group mb-2">
+    <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+    <input type="email" class="form-control" id="at_email" name="at_email" required placeholder="principal@institucion.com">
+    <button type="button" class="btn btn-outline-secondary" onclick="agregarCorreoExtra('at')" id="btn_add_at">
+      <i class="bi bi-plus-circle"></i> Agregar
+    </button>
+  </div>
+  <div id="container_emails_at">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="at_email_2" name="at_email_2" placeholder="Adicional 1">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="at_email_3" name="at_email_3" placeholder="Adicional 2">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="at_email_4" name="at_email_4" placeholder="Adicional 3">
+  </div>
+</div>
+                <div class="col-12 mt-3">
+                  <label class="form-label fw-bold">Formulario de Evaluación (PDF)</label>
+                  <input type="file" class="form-control" id="file_at_formulario" name="file_at_formulario" accept=".pdf" required>
+                </div>
+                <div class="col-12 mt-3"><label class="fw-bold">Atestados (PDF)</label><input type="file" class="form-control" name="file_at_atestados" accept=".pdf" required></div>
+                </div>
+                
+                <div class="mt-4 text-end">
+                    <button type="submit" class="btn btn-success">Enviar Evaluación</button>
+                    <button type="button" class="btn btn-sm btn-outline-info mb-3" data-bs-toggle="modal" data-bs-target="#modalConsejosPDF">
+  <i class="bi bi-question-circle"></i> Ver requisitos de escaneo
+</button>
+                </div>
+            </form>
+        </section>
+
+      </div>
+    </div>
+  </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+ <!-- MODAL DE RECOMENDACIONES DE ESCANEO (ADVERTENCIA INICIAL) -->
+<div class="modal fade" id="modalConsejosPDF" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg"> <!-- modal-lg para que sea ancho y legible -->
+    <div class="modal-content shadow-lg border-0">
+      
+      <!-- Cabecera: Color Informativo -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-info-circle-fill me-2"></i> Antes de iniciar su solicitud
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body p-4">
+        
+        <!-- Alerta de Límites -->
+        <div class="alert alert-warning border-warning d-flex align-items-center" role="alert">
+          <i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
+          <div>
+            <strong>Límites del Sistema:</strong><br>
+            Para garantizar el envío exitoso, el sistema tiene las siguientes restricciones de peso:
+            <ul class="mb-0 mt-1">
+              <li>Máximo por archivo individual: <strong>5 MB</strong></li>
+              <li>Máximo acumulado (suma de todos los archivos): <strong>25 MB</strong></li>
+            </ul>
+          </div>
+        </div>
+
+        <h6 class="fw-bold text-dark mt-4 mb-3">¿Cómo evitar errores de subida?</h6>
+        
+        <div class="row g-3">
+          <!-- Consejo 1: Resolución -->
+          <div class="col-md-6">
+            <div class="d-flex">
+              <div class="me-3">
+                <i class="bi bi-aspect-ratio fs-2 text-secondary"></i>
+              </div>
+              <div>
+                <p class="fw-bold mb-1">Resolución de Escaneo</p>
+                <p class="small text-muted text-justify">
+                  Configure su escáner en calidad <strong>"Documento" o 150 DPI</strong>. Evite usar "Calidad Fotográfica" o 300+ DPI, ya que genera archivos innecesariamente pesados que el sistema rechazará.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Consejo 2: Color vs Blanco y Negro -->
+          <div class="col-md-6">
+            <div class="d-flex">
+              <div class="me-3">
+                <i class="bi bi-palette fs-2 text-secondary"></i>
+              </div>
+              <div>
+                <p class="fw-bold mb-1">Color vs. Escala de Grises</p>
+                <p class="small text-muted text-justify">
+                  Si el documento no requiere color, escanee en <strong>Escala de Grises o Blanco y Negro</strong>. Esto reduce el peso del archivo hasta en un 70%.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Consejo 3: Herramientas -->
+          <div class="col-md-12">
+            <div class="d-flex">
+              <div class="me-3">
+                <i class="bi bi-file-earmark-zip fs-2 text-secondary"></i>
+              </div>
+              <div>
+                <p class="fw-bold mb-1">Si sus archivos son muy pesados:</p>
+                <p class="small text-muted mb-0">
+                  Utilice herramientas de compresión PDF antes de subir sus documentos. Si tomó fotos con el celular, conviértalas a PDF comprimido.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer bg-light border-0">
+        <button type="button" class="btn btn-primary px-4 fw-bold" data-bs-dismiss="modal">
+          Entendido, continuar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+  <script>
+    // --- NAVEGACIÓN ---
+    function mostrarPantalla(pantalla) {
+      document.getElementById('menuPrincipal').classList.add('d-none');
+      document.getElementById('pantallaNuevoIngreso').classList.add('d-none');
+      document.getElementById('pantallaSubsanacion').classList.add('d-none');
+      document.getElementById('pantallaAtestados').classList.add('d-none');
+
+      if(pantalla === 'nuevoIngreso') document.getElementById('pantallaNuevoIngreso').classList.remove('d-none');
+      if(pantalla === 'subsanacion') document.getElementById('pantallaSubsanacion').classList.remove('d-none');
+      if(pantalla === 'atestados') document.getElementById('pantallaAtestados').classList.remove('d-none');
+      window.scrollTo(0,0);
+    }
+
+    function volverMenu() {
+      document.getElementById('ni_tipoSolicitud').value = "";
+      if(document.getElementById('ni_restodelFormulario')) {
+         document.getElementById('ni_restodelFormulario').classList.add('d-none');
+      }
+      mostrarPantalla('menu');
+      document.getElementById('menuPrincipal').classList.remove('d-none');
+    }
+
+    // --- CONFIGURACIÓN DE CARGOS SEGÚN ESTABLECIMIENTO ---
+    const OPCIONES_CARGO = {
+      // GRUPO 1: TRS
+      "TRS_Nacional": ["Apoderado legal", "Representante legal"],
+      "TRS_Extranjero": ["Apoderado legal", "Representante legal"],
+
+      // GRUPO 2: Farmacéuticos y Prestadores
+      "Farmacia": ["Propietario", "Apoderado legal", "Representante legal"],
+      "Drogueria": ["Propietario", "Apoderado legal", "Representante legal"],
+      "Laboratorio": ["Propietario", "Apoderado legal", "Representante legal"],
+      "Botiquin": ["Propietario", "Apoderado legal", "Representante legal"],
+      "Prestador": ["Propietario", "Apoderado legal", "Representante legal"],
+
+      // GRUPO 3: Institucionales
+      "Institucional": ["Ministro", "Director"], // Macro (Nombramiento referentes institucionales)
+      "Institucional_Local": ["Director", "Encargado"] // Locales
+    };
+
+    // --- FUNCIÓN PARA ACTUALIZAR EL DROPDOWN DE CARGOS ---
+    function actualizarCargos(prefix) {
+      const tipoSelect = document.getElementById(prefix + '_tipoEstablecimiento');
+      const cargoSelect = document.getElementById(prefix + '_cargoSolicitante');
+      
+      // Obtenemos el valor seleccionado (Ej: "Farmacia")
+      const tipoSeleccionado = tipoSelect.value;
+      
+      // Limpiamos las opciones actuales
+      cargoSelect.innerHTML = '<option value="" selected disabled>Seleccione...</option>';
+
+      // Buscamos las opciones en el mapa
+      const opciones = OPCIONES_CARGO[tipoSeleccionado];
+
+      if (opciones) {
+        // Si hay opciones configuradas, las agregamos
+        opciones.forEach(opcion => {
+          const opt = document.createElement('option');
+          opt.value = opcion;
+          opt.innerHTML = opcion;
+          cargoSelect.appendChild(opt);
+        });
+        cargoSelect.disabled = false; // Habilitamos el campo
+      } else {
+        // Si no hay configuración (o es "Seleccione..."), deshabilitamos o dejamos genérico
+        cargoSelect.disabled = true;
+      }
+    }
+
+    function toggleConglomerado(prefix) {
+      const val = document.getElementById(prefix + '_conglomerado').value;
+      const divNum = document.getElementById('div_' + prefix + '_numEstablecimientos');
+      if(val === 'Si') {
+        divNum.classList.remove('d-none');
+        document.getElementById(prefix + '_cantidadEstablecimientos').required = true;
+      } else {
+        divNum.classList.add('d-none');
+        document.getElementById(prefix + '_cantidadEstablecimientos').required = false;
+        document.getElementById(prefix + '_cantidadEstablecimientos').value = '';
+      }
+    }
+
+    // --- NUEVA FUNCIÓN GENERADORA: AHORA INCLUYE LOS ARCHIVOS ---
+    // --- GENERADOR DE TARJETAS (ACTUALIZADO PARA TRS EXTRANJERO) ---
+    function generarHTMLReferente(titulo, rolKey, requerido, prefix, config = {}) {
+      // Configuración por defecto si no se especifica
+      const mostrarJV = config.mostrarJV !== undefined ? config.mostrarJV : true;
+      const mostrarDocsStandard = config.mostrarDocsStandard !== undefined ? config.mostrarDocsStandard : true; // Carnet y Anualidad
+      const mostrarDocRespaldo = config.mostrarDocRespaldo !== undefined ? config.mostrarDocRespaldo : false; // Doc nuevo
+
+      const reqAttr = requerido ? 'required' : '';
+      const badge = requerido ? '<span class="text-danger">*</span>' : '<span class="badge bg-secondary">Opcional</span>';
+      
+      // HTML para el campo JV (Condicional)
+      const htmlJV = mostrarJV ? `
+            <div class="col-md-4">
+              <label class="form-label small text-muted fw-bold">No. Junta Vigilancia</label>
+              <input type="text" class="form-control input-referente" 
+                     id="${prefix}_jv_${rolKey}" 
+                     name="${prefix}_jv_${rolKey}" 
+                     ${reqAttr} maxlength="20"
+                     data-bs-toggle="tooltip" title="N. junta de vigilancia (Ej: JVPM 2026, JVPQF 1234..)">
+            </div>` : '';
+
+      // HTML para Carnet y Anualidad (Condicional)
+      const htmlDocsStandard = mostrarDocsStandard ? `
+                <div class="col-md-6">
+                   <small class="text-muted d-block">Anualidad (PDF) <span class="text-danger">*</span></small>
+                   <input type="file" class="form-control form-control-sm input-referente" accept=".pdf" 
+                          name="${prefix}_file_${rolKey}_anualidad" ${reqAttr}
+                          data-bs-toggle="tooltip" title="Comprobante de pago de anualidad vigente.">
+                </div>
+                <div class="col-md-6">
+                   <small class="text-muted d-block">Carnet CSSP (PDF) <span class="text-danger">*</span></small>
+                   <input type="file" class="form-control form-control-sm input-referente" accept=".pdf" 
+                          name="${prefix}_file_${rolKey}_carnet" ${reqAttr}
+                          data-bs-toggle="tooltip" title="Imagen escaneada del carnet.">
+                </div>` : '';
+
+      // HTML para Documento Respaldo (Nuevo para Extranjeros)
+      const htmlDocRespaldo = mostrarDocRespaldo ? `
+                <div class="col-md-12">
+                   <small class="text-muted d-block fw-bold text-primary">Documento de Respaldo Profesional (PDF) <span class="text-danger">*</span></small>
+                   <input type="file" class="form-control form-control-sm input-referente" accept=".pdf" 
+                          name="${prefix}_file_${rolKey}_respaldo" ${reqAttr}
+                          data-bs-toggle="tooltip" title="Documento que respalde el ejercicio profesional (Título, Licencia, etc).">
+                </div>` : '';
+
+      return `
+      <div class="card mb-3 shadow-sm card-referente" id="card_${prefix}_${rolKey}" data-rol="${rolKey}" data-titulo="${titulo}">
+        <div class="card-body">
+          <h6 class="card-title text-primary fw-bold mb-3 border-bottom pb-2">${titulo} ${badge}</h6>
+          
+          <div class="row g-3">
+            <div class="${mostrarJV ? 'col-md-8' : 'col-md-12'}">
+              <label class="form-label small text-muted fw-bold">Nombre Completo</label>
+              <input type="text" class="form-control input-referente" 
+                     id="${prefix}_nombre_${rolKey}" 
+                     name="${prefix}_nombre_${rolKey}" 
+                     ${reqAttr} maxlength="100"
+                     data-bs-toggle="tooltip" title="Escriba el nombre completo.">
+            </div>
+            ${htmlJV} 
+          </div>
+
+          <div class="docs-section">
+             <label class="form-label small fw-bold text-dark mb-2">Documentación de Soporte (${titulo})</label>
+             <div class="row g-2">
+                ${htmlDocRespaldo}
+                
+                ${htmlDocsStandard}
+
+                <div class="col-md-6">
+                   <small class="text-muted d-block">Atestados (PDF)</small>
+                   <input type="file" class="form-control form-control-sm input-referente" accept=".pdf" 
+                          name="${prefix}_file_${rolKey}_atestados"
+                          data-bs-toggle="tooltip" title="Diploma o constancia de capacitación.">
+                </div>
+                <div class="col-md-6">
+                   <small class="text-muted d-block">Carta Compromiso (PDF)</small>
+                   <input type="file" class="form-control form-control-sm input-referente" accept=".pdf" 
+                          name="${prefix}_file_${rolKey}_carta"
+                          data-bs-toggle="tooltip" title="Solo si no posee atestados."> 
+                </div>
+             </div>
+             <div class="form-text small mt-2 fst-italic text-secondary">
+                <i class="bi bi-exclamation-circle"></i> Debe adjuntar <strong>Atestados</strong> O <strong>Carta de Compromiso</strong>.
+             </div>
+          </div>
+
+        </div>
+      </div>`;
+    }
+
+    // --- CONFIGURACIÓN DE REFERENTES ---
+  function configurarReferentesNI() {
+      const prefix = 'ni';
+      // 1. LLAMADA NUEVA: Actualizar el menú de cargos
+      actualizarCargos(prefix); 
+      const tipo = document.getElementById(prefix + '_tipoEstablecimiento').value;
+      const contenedor = document.getElementById(prefix + '_seccionReferentes');
+      
+      if(!tipo) return;
+
+      contenedor.innerHTML = ''; 
+      let html = '<h5 class="section-title">2. Datos de Referentes y Documentos</h5>';
+
+      // --- CASO 1: TRS EXTRANJERO ---
+      if (tipo === 'TRS_Extranjero') {
+          // Titular Internacional
+          html += generarHTMLReferente("Referente Titular Propietario de Farmacovigilancia (Internacional)", "titular", true, prefix, {
+              mostrarJV: false,
+              mostrarDocsStandard: false,
+              mostrarDocRespaldo: true
+          });
+          // Suplente
+          html += generarHTMLReferente("Referente Suplente de Farmacovigilancia", "suplente", true, prefix);
+          // Local
+          html += generarHTMLReferente("Referente Local de Farmacovigilancia", "local", true, prefix);
+      } 
+      
+      // --- CASO 2: FARMACIA ---
+      else if (tipo === 'Farmacia') {
+          // Solo Titular
+          html += generarHTMLReferente("Referente Titular Propietario de Farmacovigilancia", "titular", true, prefix);
+      }
+
+      // --- CASO 3: RESTO DE CASOS ---
+      // (Prestador, Institucional, Botiquin, Drogueria, Laboratorio e Institucional_Local)
+      else {
+          let labelTitular = "Referente Titular Propietario de Farmacovigilancia";
+          
+          // Si el tipo incluye la palabra "Institucional" (Macro o Local), cambia la etiqueta
+          if(tipo.includes("Institucional")) labelTitular = "Referente Titular Institucional de Farmacovigilancia";
+          if(tipo.includes("Institucional_Local")) labelTitular = "Referente Titular Institucional Local de Farmacovigilancia";
+          html += generarHTMLReferente(labelTitular, "titular", true, prefix);
+
+          // Todos llevan suplente, EXCEPTO Prestador
+          if (tipo !== 'Prestador') { 
+            let labelSuplente = "Referente Suplente de Farmacovigilancia";
+            if(tipo.includes("Institucional")) labelSuplente = "Referente Suplente Institucional de Farmacovigilancia";
+            if(tipo.includes("Institucional_Local")) labelSuplente = "Referente Suplente Institucional Local de Farmacovigilancia";
+            
+            html += generarHTMLReferente(labelSuplente, "suplente", true, prefix);
+          }
+      }
+
+      // --- REFERENTE ESAVI ---
+      
+      // A) Para Institucional (Macro/Grande)
+      if (tipo === 'Institucional') {
+        html += generarHTMLReferente("Referente Responsable ESAVI Institucional de Farmacovigilancia", "esavi", true, prefix);
+      }
+
+      // B) Para Botiquín e Institucional Local (Usan la misma etiqueta genérica)
+      if ( tipo === 'Botiquin' || tipo === 'Institucional_Local' ) {
+        html += generarHTMLReferente("Referente Responsable ESAVI de Farmacovigilancia", "esavi", true, prefix);
+      }
+
+      // --- PRESTADOR (Check Vacunas) ---
+      if (tipo === 'Prestador') {
+         html += `
+         <div class="form-check my-3 p-3 bg-warning border rounded shadow-sm" id="div_check_vacunas">
+            <input class="form-check-input" type="checkbox" id="${prefix}_incluyeVacunas" name="${prefix}_incluyeVacunas" onchange="toggleEsaviPrestador('${prefix}')">
+            <label class="form-check-label fw-bold" for="${prefix}_incluyeVacunas">
+               ¿Incluye manejo de vacunas? (marque la casilla de la izquierda si es así)
+            </label>
+         </div>
+         <div id="container_${prefix}_esavi" class="d-none">
+            ${generarHTMLReferente("Referente Responsable ESAVI de Farmacovigilancia", "esavi", true, prefix)}
+         </div>
+         `;
+      }
+
+      contenedor.innerHTML = html;
+      
+      logicNuevoIngreso(); 
+      activarTooltips();   
+    }
+
+    // --- VISIBILIDAD (Nuevo vs Cambio) ---
+    function logicNuevoIngreso() {
+        const tipoSolicitud = document.getElementById('ni_tipoSolicitud').value;
+        const contenidoFormulario = document.getElementById('ni_restodelFormulario');
+        const selectorCambio = document.getElementById('ni_selectorCambio');
+        const containerCheckboxes = document.getElementById('ni_checkboxesContainer');
+        const cards = document.querySelectorAll('#ni_seccionReferentes .card-referente');
+        const checkVacunas = document.getElementById('div_check_vacunas'); 
+
+        if(tipoSolicitud && tipoSolicitud !== "") {
+            contenidoFormulario.classList.remove('d-none');
+        } else {
+            contenidoFormulario.classList.add('d-none');
+            return;
+        }
+
+        if(cards.length === 0) return;
+
+        if(tipoSolicitud === 'Nuevo Nombramiento') {
+            selectorCambio.classList.add('d-none');
+            cards.forEach(c => {
+                c.classList.remove('d-none');
+                // Si la tarjeta es obligatoria (ej: Titular), activamos inputs
+                // Si es opcional (Suplente Farmacia), dejamos activos pero no required
+                // La función generarHTML ya puso 'required' estáticamente si correspondía
+                enableInputs(c, true); 
+            });
+            if(checkVacunas) checkVacunas.classList.remove('d-none');
+        } 
+        else if (tipoSolicitud === 'Cambio de Referente') {
+            selectorCambio.classList.remove('d-none');
+            if(checkVacunas) checkVacunas.classList.add('d-none'); 
+
+            let chkHtml = '';
+            cards.forEach(c => {
+                const rol = c.dataset.rol;
+                const titulo = c.dataset.titulo.replace('*','').replace('Opcional',''); 
+                chkHtml += `
+                    <div class="form-check form-check-inline me-3">
+                        <input class="form-check-input" type="checkbox" value="${c.id}" onchange="filtrarInputsNI()">
+                        <label class="form-check-label">${titulo}</label>
+                    </div>
+                `;
+            });
+            containerCheckboxes.innerHTML = chkHtml;
+            filtrarInputsNI();
+        }
+    }
+
+    function filtrarInputsNI() {
+        const checkboxes = document.querySelectorAll('#ni_checkboxesContainer input');
+        document.querySelectorAll('#ni_seccionReferentes .card-referente').forEach(c => {
+            c.classList.add('d-none');
+            enableInputs(c, false); // Deshabilita TODO (texto y archivos)
+        });
+
+        checkboxes.forEach(chk => {
+            if(chk.checked) {
+                const card = document.getElementById(chk.value);
+                if(card) {
+                    card.classList.remove('d-none');
+                    if(chk.value.includes('esavi') && document.getElementById('container_ni_esavi')){
+                        document.getElementById('container_ni_esavi').classList.remove('d-none');
+                    }
+                    enableInputs(card, true); // Habilita texto y archivos
+                }
+            }
+        });
+    }
+
+    function enableInputs(cardElement, enable) {
+        const inputs = cardElement.querySelectorAll('input, select'); // Incluimos selects si hubiera
+        const tipoSolicitud = document.getElementById('ni_tipoSolicitud').value;
+
+        inputs.forEach(inp => {
+            if (enable) {
+                inp.disabled = false;
+                
+                // LÓGICA PARA MODO "CAMBIO DE REFERENTE"
+                if (tipoSolicitud === 'Cambio de Referente') {
+                    // Por defecto, si activo el checkbox, el campo se vuelve obligatorio...
+                    inp.required = true;
+
+                    // ... excepcion para los que tienen validación especial:
+                    // 1. Carta: Siempre es opcional (depende de atestados)
+                    // 2. Atestados: Lo dejamos opcional en HTML para que la función validarAtestadosOCarta decida
+                    if (inp.name.includes('carta') || inp.name.includes('atestados')) {
+                        inp.required = false; 
+                    }
+                    
+                    // NOTA: El campo 'respaldo' (Extranjero) NO cae en la excepción, 
+                    // así que se volverá 'required = true' automáticamente. 
+                }
+            } else {
+                inp.disabled = true;
+                // Al deshabilitar, quitamos el required para que no bloquee el envío
+                inp.required = false; 
+            }
+        });
+    }
+
+    function toggleEsaviPrestador(prefix) {
+      const chk = document.getElementById(prefix + '_incluyeVacunas');
+      const div = document.getElementById('container_' + prefix + '_esavi');
+      if(!div) return;
+      const inputs = div.querySelectorAll('input');
+      
+      if(chk.checked) {
+        div.classList.remove('d-none');
+        inputs.forEach(i => { i.disabled = false; if(!i.name.includes('carta')) i.required = true; });
+      } else {
+        div.classList.add('d-none');
+        inputs.forEach(i => { i.disabled = true; i.required = false; i.value = ''; });
+      }
+    }
+
+    // --- VALIDACIÓN DE MENÚS DESPLEGABLES ---
+    function validarSelects(form) {
+        // Buscamos todos los select que tengan el atributo 'required'
+        const selects = form.querySelectorAll('select[required]');
+        
+        for (let select of selects) {
+            // Verificamos si el elemento es visible (para no validar selects de secciones ocultas)
+            // offsetParent es null si el elemento (o su padre) tiene display: none
+            if (select.offsetParent !== null) {
+                
+                if (!select.value || select.value === "") {
+                    // Intentamos obtener el nombre del campo desde el label anterior
+                    let nombreCampo = "un campo de selección";
+                    const label = select.previousElementSibling; 
+                    if (label && label.tagName === 'LABEL') {
+                        nombreCampo = label.innerText;
+                    }
+
+                    alert(`⚠️ CAMPO INCOMPLETO\n\nPor favor, seleccione una opción válida en: "${nombreCampo}"`);
+                    
+                    select.classList.add('is-invalid'); // Pone el borde rojo
+                    select.focus(); // Lleva al usuario al campo vacío
+                    return false; // Detiene el envío
+                } else {
+                    select.classList.remove('is-invalid');
+                }
+            }
+        }
+        return true; // Todo correcto
+    }
+
+    // --- NUEVA VALIDACIÓN DE ARCHIVOS EN FRONTEND ---
+  
+function validarArchivosPDF(form) {
+        const inputsFile = form.querySelectorAll('input[type="file"]');
+        
+        // --- CONFIGURACIÓN DINÁMICA DE LÍMITES ---
+        let limiteIndividualMB = 5; // Por defecto (Nuevo Ingreso)
+        const limiteTotalMB = 25;   // La bolsa total siempre es 25MB por seguridad del servidor
+
+        // Si es Subsanación o Atestados, permitimos archivos más grandes individuales
+        // porque suelen subir uno solo.
+        if (form.id === 'formSubsanacion' || form.id === 'formAtestados') {
+            limiteIndividualMB = 25; 
+        }
+
+        // Convertir a Bytes
+        const BYTES_INDIVIDUAL = limiteIndividualMB * 1024 * 1024;
+        const BYTES_TOTAL = limiteTotalMB * 1024 * 1024;
+
+        let pesoAcumulado = 0; 
+
+        for (let input of inputsFile) {
+            if (input.files.length > 0) {
+                for (let file of input.files) {
+                    
+                    // 1. VALIDAR FORMATO (PDF)
+                    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+                        mostrarError(`❌ <strong>ERROR DE FORMATO</strong><br><br>El archivo "<em>${file.name}</em>" no es un PDF.<br>Solo se permiten archivos .pdf`);
+                        input.value = ''; 
+                        input.classList.add('is-invalid'); 
+                        return false; 
+                    } 
+                    
+                    // 2. VALIDAR TAMAÑO INDIVIDUAL (Dinámico)
+                    if (file.size > BYTES_INDIVIDUAL) {
+                        let pesoArchivo = (file.size / 1024 / 1024).toFixed(2);
+                        mostrarError(`⚠️ <strong>ARCHIVO MUY PESADO</strong><br><br>
+                        El archivo "<em>${file.name}</em>" pesa <strong>${pesoArchivo} MB</strong>.<br>
+                        Para este tipo de trámite, el máximo permitido por archivo es de <strong>${limiteIndividualMB} MB</strong>.<br><br>
+                        Por favor, comprímalo.`);
+                        
+                        input.value = ''; 
+                        input.classList.add('is-invalid'); 
+                        return false;
+                    }
+
+                    // Sumamos al total
+                    pesoAcumulado += file.size;
+                    input.classList.remove('is-invalid');
+                }
+            }
+        }
+
+        // 3. VALIDAR TAMAÑO TOTAL
+        if (pesoAcumulado > BYTES_TOTAL) {
+            let totalMB = (pesoAcumulado / 1024 / 1024).toFixed(2);
+            mostrarError(`⚠️ <strong>EXCESO DE TAMAÑO TOTAL</strong><br><br>
+            La suma de todos los archivos es <strong>${totalMB} MB</strong>.<br>
+            El sistema permite un máximo total de <strong>${limiteTotalMB} MB</strong> por envío.<br><br>
+            Si está enviando múltiples archivos pesados, intente comprimirlos.`);
+            return false;
+        }
+
+        return true; 
+    }
+
+    // --- NUEVA VALIDACIÓN: CAMPOS DE TEXTO VACÍOS ---
+    function validarCamposTexto(form) {
+        // Buscamos inputs de texto obligatorios
+        const inputs = form.querySelectorAll('input[type="text"][required]');
+        
+        for (let input of inputs) {
+            // Verificamos si el elemento es visible (offsetParent !== null)
+            // Esto es vital para no validar campos de formularios ocultos (ej: si estoy en Nuevo, no valido Subsanación)
+            if (input.offsetParent !== null) {
+                
+                if (!input.value || input.value.trim() === "") {
+                    // Intentamos obtener el nombre del campo desde el label anterior
+                    let nombreCampo = "un campo obligatorio";
+                    const label = input.previousElementSibling; 
+                    if (label && label.tagName === 'LABEL') {
+                        nombreCampo = label.innerText;
+                    }
+                    
+                    // Buscamos el título de la tarjeta para ser más específicos
+                    let contexto = "";
+                    const tarjeta = input.closest('.card-referente');
+                    if (tarjeta) {
+                        const titulo = tarjeta.querySelector('.card-title');
+                        if (titulo) contexto = `En: <strong>${titulo.innerText}</strong><br>`;
+                    }
+
+                    mostrarError(`⚠️ <strong>CAMPO VACÍO</strong><br><br>${contexto}Por favor, complete el campo:<br>👉 <strong>"${nombreCampo}"</strong>`);
+                    
+                    input.classList.add('is-invalid');
+                    setTimeout(() => input.focus(), 500); 
+                    return false; // Detiene el envío
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            }
+        }
+        return true; // Todo correcto
+    }
+    // --- VALIDACIÓN LÓGICA: ATESTADOS O CARTA ---
+    
+function validarAtestadosOCarta(form) {
+        if (form.id !== 'formNuevoIngreso') return true;
+        const cards = form.querySelectorAll('.card-referente:not(.d-none)');
+
+        for (let card of cards) {
+            const inputNombre = card.querySelector('input[name*="_nombre_"]');
+            if (!inputNombre || inputNombre.value.trim() === "") continue;
+
+            const inputAtestados = card.querySelector('input[name*="_atestados"]');
+            const inputCarta = card.querySelector('input[name*="_carta"]');
+            const tituloReferente = card.querySelector('.card-title').innerText;
+
+            if (inputAtestados && !inputAtestados.disabled) {
+                const tieneAtestados = inputAtestados.files.length > 0;
+                const tieneCarta = inputCarta.files.length > 0;
+
+                if (!tieneAtestados && !tieneCarta) {
+                    
+                    mostrarError(`⚠️ <strong>FALTA DOCUMENTACIÓN</strong><br>Referente: ${tituloReferente}<br><br>Debe adjuntar obligatoriamente:<br>👉 Atestados de Farmacovigilancia<br>O BIEN<br>👉 Carta de Compromiso.`);
+                    
+                    inputAtestados.classList.add('is-invalid');
+                    inputCarta.classList.add('is-invalid');
+                    return false; 
+                } else {
+                    inputAtestados.classList.remove('is-invalid');
+                    inputCarta.classList.remove('is-invalid');
+                }
+            }
+        }
+        return true; 
+    }
+// FUNCIÓN PARA MOSTRAR ERRORES BONITOS
+    function mostrarError(mensaje) {
+        const modalEl = document.getElementById('modalError');
+        const textoEl = document.getElementById('mensajeErrorTexto');
+        
+        textoEl.innerHTML = mensaje; // Usamos innerHTML para permitir saltos de linea <br>
+        
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+
+    // 1. FUNCIÓN PARA ABRIR LA VENTANA BONITA
+    function mostrarModalExito(tipo, codigo) {
+      const modalElement = document.getElementById('modalExito');
+      const mensajePrincipal = document.getElementById('modalMensajePrincipal');
+      const seccionCodigo = document.getElementById('modalSeccionCodigo');
+      const codigoTexto = document.getElementById('modalCodigoTexto');
+      
+      // Personalizar mensaje
+      if (tipo === 'Nuevo Ingreso' && codigo) {
+        mensajePrincipal.innerText = "La solicitud se registró correctamente.";
+        seccionCodigo.classList.remove('d-none'); // Mostrar caja del código
+        codigoTexto.innerText = codigo;
+      } else {
+        // Para Subsanaciones/Atestados, el código trae el mensaje completo
+        mensajePrincipal.innerText = codigo; 
+        seccionCodigo.classList.add('d-none'); // Ocultar caja del código
+      }
+
+      // Mostrar el modal usando Bootstrap
+      const modal = new bootstrap.Modal(modalElement);
+      modal.show();
+    }
+
+    // 2. FUNCIÓN PARA EL BOTÓN "ACEPTAR"
+    function cerrarModalYReiniciar() {
+      // Ocultar modal
+      const modalElement = document.getElementById('modalExito');
+      const modal = bootstrap.Modal.getInstance(modalElement);
+      modal.hide();
+      
+      // Volver al menú principal
+      volverMenu();
+    }
+
+    // --- FUNCIÓN DE ENVÍO ACTUALIZADA ---
+    function procesarEnvioVisual(e, tipoFormulario) {
+      e.preventDefault();
+      const form = e.target;
 
 
-  },
+      // --- ORDEN DE VALIDACIONES ---
+      
+      // 1. Validar Selects (Menús desplegables)
+      if (!validarSelects(form)) return;
 
-  // PARA BOTIQUINES (Titular + ESAVI)
-  "dictamen_4": {
+      // 2. Validar Campos de Texto (Nombres, Cargos, JV) <--- NUEVO
+      if (!validarCamposTexto(form)) return;
+      
+      // 3. Validar Archivos (Que sean PDF y formato correcto)
+      if (!validarArchivosPDF(form)) return;
 
-    fecha: "I11",
-    correlativo: "B11",
+      // 4. Validar Lógica Atestados vs Carta
+      if (typeof validarAtestadosOCarta === "function") {
+         if (!validarAtestadosOCarta(form)) return;
+      }
 
-    //solicitante: "B10",
-    //cargo: "B11",
-    tipoEstablecimiento: "D13",
-    linkCarpeta: "D16",
-
-    nombreTitular: "C21",
-    jvTitular: "J21",
-
-    nombreSuplente: "C59",     // <--- Celda del Suplente
-    jvSuplente: "J59",
-
-    nombreEsavi: "C108",        // <--- Celda del ESAVI
-    jvEsavi: "J108"
-  },
-
-  // PARA INSTITUCIONAL (Titular + Suplente + ESAVI)
-  "dictamen_5": {
-
-    fecha: "I11",
-    correlativo: "B11",
-
-    //solicitante: "B10",
-    //cargo: "B11",
-
-    tipoEstablecimiento: "D13",
-    linkCarpeta: "D15",
-
-    nombreTitular: "C20",
-    jvTitular: "j20",
-
-    nombreSuplente: "C59",
-    jvSuplente: "j59",
-
-    nombreEsavi: "C107",
-    jvEsavi: "j107"
-  }
-};
-
-function doGet() {
-  return HtmlService.createTemplateFromFile('Index')
-      .evaluate().setTitle('Gestión de Referentes - SRS')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+      // Validación especial para la lista de nombres (Solo en Nuevo Ingreso)
+if (tipoFormulario === 'Nuevo Ingreso') {
+    const listaInput = document.getElementById('ni_lista_nombres_final');
+    if (!listaInput.value || listaInput.value === "[]") {
+        mostrarError("⚠️ <strong>FALTA EL ESTABLECIMIENTO</strong><br>Debe agregar al menos un nombre de establecimiento a la lista.");
+        return;
+    }
 }
 
-function procesarFormulario(formObject) {
-  // Logs para depuración
-  console.log("Procesando solicitud...");
-  
-  const lock = LockService.getScriptLock();
-  try { lock.waitLock(10000); } catch (e) { return "Error: Sistema saturado."; }
-
-  let nuevoCorrelativo = "";
-  
-  // Generar ID solo para Nuevo Ingreso
-  if (formObject.ni_tipoSolicitud) {
-     nuevoCorrelativo = obtenerSiguienteCorrelativoMemoria(); 
-  }
-  
-  lock.releaseLock(); 
-
-  try {
-    const ss = SpreadsheetApp.openById(ID_SHEET);
-
-    // =========================================================
-    // CASO 1: GESTIÓN REFERENTES (NUEVO INGRESO / CAMBIO)
-    // =========================================================
-    if (formObject.ni_tipoSolicitud) {
-      const sheet = ss.getSheetByName("BITACORA DE RFV");
+      // --- SI PASA TODO, PROCEDE AL ENVÍO ---
+      const botonSubmit = form.querySelector('button[type="submit"]');
+      const textoOriginal = botonSubmit.innerHTML; 
+      const overlay = document.getElementById('loadingOverlay');
+      const tituloCarga = overlay.querySelector('h3');
       
-      // 1. Obtener carpeta RAÍZ > Carpeta AÑO
-      const parentFolder = obtenerCarpetaDelAnio(ID_FOLDER_GESTION);
+      tituloCarga.innerText = "Validando documentos y creando expediente...";
+      overlay.classList.remove('d-none');
       
-      // 2. Crear carpeta SOLICITUD
-      const carpetaTramite = parentFolder.createFolder(nuevoCorrelativo);
-      const urlCarpeta = carpetaTramite.getUrl();
+      botonSubmit.disabled = true;
+      botonSubmit.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando...';
 
-       // --- LOGICA DE CORREOS ---
-      const correoPrincipal = formObject.ni_email; 
-      const todosLosCorreos = recopilarCorreos(formObject, 'ni'); 
+      google.script.run
+        .withSuccessHandler(function(response) {
+          botonSubmit.disabled = false;
+          botonSubmit.innerHTML = textoOriginal;
 
-      // A. Obtener nombre base del archivo
-      const nombreArchivoBase = MAPA_DICTAMENES[formObject.ni_tipoEstablecimiento];
+          if (response.startsWith("Exito")) {
+             const partes = response.split('|');
+             const infoExtra = partes[1]; 
 
-      // B. Copiar dictamen
-      const idDictamenNuevo = copiarDictamen(formObject.ni_tipoEstablecimiento, carpetaTramite);
+             form.reset();
+             if(document.getElementById('ni_restodelFormulario')) {
+                document.getElementById('ni_restodelFormulario').classList.add('d-none');
+             }
 
-      // C. Llenar el dictamen
-      if (idDictamenNuevo && nombreArchivoBase) {
-         llenarDictamen(idDictamenNuevo, formObject, nuevoCorrelativo, nombreArchivoBase, urlCarpeta);
-      } else {
-         console.log("No se pudo llenar el dictamen: ID o Nombre base faltante.");
-      }
+             mostrarModalExito(tipoFormulario, infoExtra);
+             overlay.classList.add('d-none');
+             
+          } else {
+             overlay.classList.add('d-none');
+             mostrarError("⚠️ <strong>ERROR DE SERVIDOR</strong><br>" + response);
+          }
+        })
+        .withFailureHandler(function(error) {
+          overlay.classList.add('d-none');
+          botonSubmit.disabled = false;
+          botonSubmit.innerHTML = textoOriginal;
+          mostrarError("❌ <strong>ERROR DEL SISTEMA</strong><br>" + (error.message || String(error)));
+        })
+        .procesarFormulario(form);
+    }
+   
 
-      const urlFormulario = subirArchivo(formObject.file_ni_nombramiento, carpetaTramite, "NI_Formulario_" + nuevoCorrelativo);
-      const titular = obtenerDatosRol(formObject, carpetaTramite, 'ni', 'titular');
-      const suplente = obtenerDatosRol(formObject, carpetaTramite, 'ni', 'suplente');
-      const esavi = obtenerDatosRol(formObject, carpetaTramite, 'ni', 'esavi');
-      const local = obtenerDatosRol(formObject, carpetaTramite, 'ni', 'local');
+// Mostrar advertencia de archivos al cargar la página
+    window.addEventListener('load', function() {
+        const modalConsejos = new bootstrap.Modal(document.getElementById('modalConsejosPDF'));
+        modalConsejos.show();
+        
+        // También activamos los tooltips aquí mismo
+        activarTooltips();
+    });
 
-      // --- PREPARAR LA FILA BASE (Datos comunes para todos los establecimientos) ---
-      let filaBase = new Array(50).fill(""); // Aumenté a 50 para seguridad de índices
-
-      filaBase[0] = nuevoCorrelativo;              // A
-      filaBase[1] = urlCarpeta;                    // B
-      filaBase[2] = formObject.ni_tipoSolicitud;   // C 
-      filaBase[3] = new Date();            // D
-
-      // NOTA: Dejamos filaBase[6] vacía aquí, porque la llenaremos en el bucle abajo con el nombre específico
-
-      filaBase[8] = formObject.ni_tipoEstablecimiento; // I
-      filaBase[9] = formObject.ni_conglomerado || "N/A"; // J
-      //filaBase[10] = formObject.ni_cantidadEstablecimientos || "N/A"; // K
-      filaBase[14] = formObject.ni_nombreSolicitante || "N/A"; // O
-      filaBase[15] = formObject.ni_cargoSolicitante || "N/A";  // P
+    // --- FUNCIÓN PARA ACTIVAR LOS MENSAJES (TOOLTIPS) ---
+    
+    function activarTooltips() {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
       
-      // Datos Referentes
-      filaBase[16] = titular.nombre || "N/A";               
-      filaBase[17] = titular.jv || "N/A";                   
-      filaBase[18] = suplente.nombre || "N/A";              
-      filaBase[19] = suplente.jv || "N/A";                  
-      filaBase[20] = local.nombre || "N/A";                 
-      filaBase[21] = local.jv || "N/A";                     
-      filaBase[22] = esavi.nombre || "N/A";                 
-      filaBase[23] = esavi.jv || "N/A";                     
-
-      // Correo 
-      filaBase[49] = correoPrincipal; 
-
-      // =========================================================
-      //  LÓGICA DE LISTA DE NOMBRES
-      // =========================================================
-      
-      let listaNombres = [];
-      
-      // 1. Intentamos leer la lista JSON que viene del HTML
-      try {
-        if (formObject.ni_lista_nombres_final) {
-           listaNombres = JSON.parse(formObject.ni_lista_nombres_final);
-        }
-      } catch (e) { console.log("Error leyendo lista nombres: " + e.message); }
-
-      // 2. Seguridad: Si la lista está vacía, agregamos uno genérico para que se guarde al menos una fila
-      if (listaNombres.length === 0) {
-         
-         listaNombres.push("NOMBRE NO ESPECIFICADO"); 
-      }
-
-      let bloqueDeFilas = [];
-
-      filaBase[10] = listaNombres.length;
-
-      // 3. Recorremos cada nombre y creamos su propia fila
-      listaNombres.forEach(nombreEstab => {
-          // Copiamos la fila base
-          let filaIndividual = [...filaBase];
-          
-          // ASIGNAMOS EL NOMBRE EN LA COLUMNA G (Índice 10)
-          
-          filaIndividual[12] = nombreEstab; 
-
-          bloqueDeFilas.push(filaIndividual);
+      // Limpiamos los tooltips anteriores para evitar duplicados si se regenera el formulario
+      tooltipTriggerList.forEach(el => {
+          const instance = bootstrap.Tooltip.getInstance(el);
+          if (instance) instance.dispose();
       });
 
-      // --- GUARDADO MASIVO ---
-      sheet.getRange(sheet.getLastRow() + 1, 1, bloqueDeFilas.length, filaBase.length).setValues(bloqueDeFilas);
-
-      // *** ENVIO CON ADJUNTO ***
-      enviarCorreoConfirmacion(
-          todosLosCorreos, 
-          "Nuevo Ingreso", 
-          nuevoCorrelativo, 
-          formObject.ni_nombreSolicitante, 
-          formObject.file_ni_nombramiento 
+      // Creamos los nuevos configurados SOLO para 'hover'
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => 
+        new bootstrap.Tooltip(tooltipTriggerEl, {
+            trigger: 'hover' // <--- ESTO SOLUCIONA EL PROBLEMA
+        })
       );
-
-      return "Exito|" + nuevoCorrelativo;
     }
 
-    // =========================================================
-    // CASO 2: SUBSANACIÓN
-    // =========================================================
-    else if (formObject.sub_correlativo) {
-      const sheet = ss.getSheetByName("BITACORA DE RFV");
-      const codigoInput = formObject.sub_correlativo.trim().toUpperCase(); // Ej: RFV-2026-0005
-      
-      // 1. BUSCAR LA CARPETA ORIGINAL
-      const carpetaExpediente = buscarCarpetaExpediente(codigoInput);
-      
-      if (!carpetaExpediente) {
-        return "Error: No se encontró ningún expediente con el código " + codigoInput + ". Verifique que esté bien escrito, de la siguiente manera RFV-2026-XXXX.";
+    // --- FUNCIÓN PARA MOSTRAR CAMPOS DE CORREO EXTRA ---
+    function agregarCorreoExtra(prefix) {
+      const container = document.getElementById('container_emails_' + prefix);
+      const inputsOcultos = container.querySelectorAll('input.d-none');
+      const boton = document.getElementById('btn_add_' + prefix);
+
+      if (inputsOcultos.length > 0) {
+        // Mostramos el primero que encontremos oculto
+        const inputAMostrar = inputsOcultos[0];
+        inputAMostrar.classList.remove('d-none');
+        inputAMostrar.focus(); // Ponemos el cursor ahí para facilitar
+        
+        // Si ya no quedan más ocultos, escondemos el botón de agregar
+        if (inputsOcultos.length === 1) {
+           boton.disabled = true;
+           boton.innerText = "Máximo alcanzado";
+        }
+      }
+    }
+    // Variable global para almacenar los nombres
+    let nombresArray = [];
+
+    function agregarNombreManual() {
+      const input = document.getElementById('input_nombre_temporal');
+      const nombre = input.value.trim().toUpperCase();
+      const esConglomerado = document.getElementById('ni_conglomerado').value;
+
+      if (nombre === "") {
+        mostrarError("Por favor escriba un nombre antes de agregar.");
+        return;
       }
 
-      // 2. VALIDAR SI YA EXISTE SUBSANACIÓN (Para evitar duplicados)
-      const subCarpetas = carpetaExpediente.getFoldersByName("Subsanación");
-      if (subCarpetas.hasNext()) {
-        return "Error: Este expediente (" + codigoInput + ") ya tiene una subsanación registrada. No se permite enviar más de una vez.";
+      // SI NO ES CONGLOMERADO, SOLO 1 NOMBRE ---
+      if (esConglomerado === "No" && nombresArray.length >= 1) {
+          mostrarError("⚠️ <strong>LÍMITE ALCANZADO</strong><br><br>Si seleccionó que <strong>NO</strong> es conglomerado, solo puede ingresar 1 establecimiento.<br><br>Cambie la opción a 'Sí' si desea agregar más.");
+          return;
       }
 
-      // 3. CREAR LA SUBCARPETA DE SUBSANACIÓN DENTRO DE LA ORIGINAL
-      const carpetaSubsanacion = carpetaExpediente.createFolder("Subsanación");
-      
-      // 4. SUBIR ARCHIVOS A ESA NUEVA SUBCARPETA
-      const urlDocs = subirArchivo(formObject.file_sub_documentos, carpetaSubsanacion, "SUB_" + codigoInput);
-
-      const correoPrincipal = formObject.sub_email;
-      const todosLosCorreos = recopilarCorreos(formObject, 'sub');
-
-      // 5. GUARDAR EN SHEET
-      let fila = new Array(20).fill("");
-      fila[0] = codigoInput;          // A
-      fila[1] = carpetaSubsanacion.getUrl(); // B (Link directo a la subcarpeta)
-	fila[2] ='Subsanación de observaciones'; 
-      fila[3] = new Date(); 
-      fila[8] = formObject.sub_tipoEstablecimiento; 
-      fila[14] = formObject.sub_nombreSolicitante;   
-      fila[15] = formObject.sub_cargoSolicitante;    
-      fila[49] = correoPrincipal; 
-
-      sheet.getRange(sheet.getLastRow() + 1, 1, 1, fila.length).setValues([fila]);
-      
-      // 6. ENVIAR CORREO
-      
-
-      // *** ENVIO CON ADJUNTO ***
-      // Pasamos el archivo de subsanación
-      enviarCorreoConfirmacion(
-          todosLosCorreos, 
-          "Subsanación", 
-          codigoInput, 
-          formObject.sub_nombreSolicitante,
-          formObject.file_sub_documentos // <--- AQUÍ VA EL ARCHIVO
-      );
-
-      return "Exito|Subsanación registrada correctamente en el expediente: " + codigoInput;
-    }
-
-    // =========================================================
-    // CASO 3: ATESTADOS
-    // =========================================================
-    else if (formObject.at_correlativo) {
-      const sheet = ss.getSheetByName("BITACORA DE ATESTADOS");
-      const codigoInput = formObject.at_correlativo.trim().toUpperCase();
-
-      // 1. BUSCAR LA CARPETA ORIGINAL
-      const carpetaExpediente = buscarCarpetaExpediente(codigoInput);
-      
-      if (!carpetaExpediente) {
-        return "Error: No se encontró ningún expediente con el código " + codigoInput + ". Verifique que esté bien escrito, de la siguiente manera RFV-2026-XXXX";
+      // Evitar duplicados
+      if (nombresArray.includes(nombre)) {
+        mostrarError("Ese nombre ya está en la lista.");
+        return;
       }
 
-      // 2. CREAR SUBCARPETA "EVALUACIÓN DE ATESTADOS" 
-      let carpetaEvaluacion;
-      const checkFolder = carpetaExpediente.getFoldersByName("Evaluación de Atestados");
-      if (checkFolder.hasNext()) {
-         carpetaEvaluacion = checkFolder.next(); // Ya existía, usamos la misma
-      } else {
-         carpetaEvaluacion = carpetaExpediente.createFolder("Evaluación de Atestados");
+      nombresArray.push(nombre);
+      input.value = "";
+      input.focus();
+      actualizarVistaNombres();
+    }
+
+    function eliminarNombre(index) {
+      nombresArray.splice(index, 1);
+      actualizarVistaNombres();
+    }
+
+    function actualizarVistaNombres() {
+      const ul = document.getElementById('visual_lista_nombres');
+      const inputOculto = document.getElementById('ni_lista_nombres_final');
+      
+      // Elemento del contador visual
+      const inputCantidad = document.getElementById('ni_cantidadEstablecimientos');
+
+      ul.innerHTML = "";
+
+      nombresArray.forEach((nom, index) => {
+        const li = document.createElement('li');
+        li.className = "list-group-item d-flex justify-content-between align-items-center py-1";
+        li.innerHTML = `
+          <span>${index + 1}. ${nom}</span>
+          <button type="button" class="btn btn-sm text-danger" onclick="eliminarNombre(${index})">
+            <i class="bi bi-trash-fill"></i>
+          </button>
+        `;
+        ul.appendChild(li);
+      });
+
+      // Guardamos el array para el servidor
+      inputOculto.value = nombresArray.length > 0 ? JSON.stringify(nombresArray) : "";
+
+      // --- NUEVO: ACTUALIZAR EL CAMPO DE CANTIDAD AUTOMÁTICAMENTE ---
+      // Si la lista está vacía, ponemos 1 por defecto (o 0), si no, el largo del array
+      let cantidadReal = nombresArray.length;
+      if (cantidadReal === 0) cantidadReal = 1; 
+      
+      inputCantidad.value = cantidadReal;
+      
+      //Si agrega más de 1, forzamos que el select diga "Si" es conglomerado
+      if (cantidadReal > 1) {
+          const selectConglomerado = document.getElementById('ni_conglomerado');
+          if (selectConglomerado.value === "No") {
+              selectConglomerado.value = "Si";
+              toggleConglomerado('ni'); // Hacemos visible el campo
+          }
       }
-
-      // 3. SUBIR ARCHIVOS
-      const urlDocs = subirArchivo(formObject.file_at_atestados,carpetaEvaluacion, "EVAL_" + codigoInput);
-
-      const urlFormulario = subirArchivo(formObject.file_at_formulario, carpetaEvaluacion, "EVAL_Formulario_" + codigoInput);
-
-      const correoPrincipal = formObject.at_email;
-      const todosLosCorreos = recopilarCorreos(formObject, 'at');
-
-      let fila = new Array(20).fill("");
-      fila[0] = codigoInput;        
-      fila[1] = carpetaEvaluacion.getUrl(); // Link a la subcarpeta
-	fila[2] ='SOLICITUD DE EVALUACION DE ATESTADOS'; 
-      fila[4] = new Date();
-      fila[5] = formObject.at_tipoEstablecimiento; 
-      fila[15] = correoPrincipal; 
-
-      sheet.getRange(sheet.getLastRow() + 1, 1, 1, fila.length).setValues([fila]);
-      
-
-      // *** ENVIO CON ADJUNTO ***
-      // Pasamos el FORMULARIO de evaluación (el nuevo)
-      enviarCorreoConfirmacion(
-          todosLosCorreos, 
-          "Evaluación Atestados", 
-          codigoInput, 
-          "Usuario",
-          formObject.file_at_formulario // <--- AQUÍ VA EL ARCHIVO
-      );
-
-      return "Exito|Evaluación agregada al expediente: " + codigoInput;
     }
 
-  } catch (e) {
-    return "Error: " + e.toString();
-  }
-}
-
-// =========================================================
-//  FUNCIONES AUXILIARES
-// =========================================================
-
-function obtenerCarpetaDelAnio(idCarpetaRaiz) {
-  const rootFolder = DriveApp.getFolderById(idCarpetaRaiz);
-  const currentYear = new Date().getFullYear().toString(); 
-  const folders = rootFolder.getFoldersByName(currentYear);
-  
-  if (folders.hasNext()) {
-    return folders.next(); 
-  } else {
-    return rootFolder.createFolder(currentYear); 
-  }
-}
-
-// =========================================================
-//  FUNCIÓN DE ENVÍO DE CORREOS (CON ADJUNTO)
-// =========================================================
-function enviarCorreoConfirmacion(emailDestino, tipoTramite, correlativo, nombre, archivoAdjunto) {
-  if (!emailDestino) return;
-
-  let asunto = "";
-  let cuerpo = "";
-  const estilo = 'font-family: Arial, sans-serif; color: #333; line-height: 1.5;';
-  const estiloCodigo = 'font-size: 18px; font-weight: bold; color: #003366; background: #e6f0ff; padding: 10px; display: inline-block; border-radius: 5px;';
-
-  if (tipoTramite === "Nuevo Ingreso") {
-    asunto = "✅ Confirmación SRS - " + correlativo;
-    cuerpo = `
-      <div style="${estilo}">
-        <h3>Estimado/a ${nombre || ''},</h3>
-        <p>Su solicitud de <strong>Nombramiento de referentes</strong> ha sido registrada exitosamente.</p>
-        <p>Número de solicitud generado:</p>
-        <p><span style="${estiloCodigo}">${correlativo}</span></p>
-        <p>Adjunto encontrará una copia de su formulario de solicitud.</p>
-        <hr><small>Mensaje automático SRS.</small>
-      </div>`;
-  } else {
-    asunto = "✅ Documentos Recibidos - " + correlativo;
-    cuerpo = `
-      <div style="${estilo}">
-        <h3>Estimado Usuario,</h3>
-        <p>Hemos recibido documentación para el trámite de <strong>${tipoTramite}</strong> asociado a la solicitud:</p>
-        <p><span style="${estiloCodigo}">${correlativo}</span></p>
-        <p>Adjunto encontrará una copia del documento enviado como respaldo.</p>
-        <hr><small>Mensaje automático SRS.</small>
-      </div>`;
-  }
-
-  // Configuración del correo
-  const opcionesCorreo = {
-    to: emailDestino,
-    subject: asunto,
-    htmlBody: cuerpo
-  };
-
-  // Si hay archivo, lo agregamos
-  if (archivoAdjunto) {
-    // Le ponemos el nombre del correlativo al archivo para que se vea profesional
-    archivoAdjunto.setName(correlativo + ".pdf");
-    opcionesCorreo.attachments = [archivoAdjunto];
-  }
-
-  try {
-    MailApp.sendEmail(opcionesCorreo);
-  } catch (e) {
-    console.log("Error enviando correo: " + e.message);
-  }
-}
-
-function obtenerSiguienteCorrelativoMemoria() {
-  const scriptProperties = PropertiesService.getScriptProperties();
-  const year = new Date().getFullYear();
-  const key = 'CONTADOR_' + year; 
-  let ultimoNumero = Number(scriptProperties.getProperty(key) || 0);
-  let nuevoNumero = ultimoNumero + 1;
-  scriptProperties.setProperty(key, nuevoNumero.toString());
-  return `RFV-${year}-${String(nuevoNumero).padStart(4, '0')}`;
-}
-
-function copiarDictamen(tipoEstablecimiento, carpetaDestino) {
-  try {
-    const nombreArchivo = MAPA_DICTAMENES[tipoEstablecimiento];
-    if (!nombreArchivo) return null;
-
-    const carpetaFuente = DriveApp.getFolderById(ID_FOLDER_DICTAMENES);
-    const archivos = carpetaFuente.getFilesByName(nombreArchivo);
-    
-    if (archivos.hasNext()) {
-      const archivoOriginal = archivos.next();
-      // Copiar
-      const archivoCopia = archivoOriginal.makeCopy("Dictamen_Para_Llenar", carpetaDestino);
-      
-      // ¡ESTA LÍNEA ES VITAL! Sin ella, no podemos llenar el archivo
-      return archivoCopia.getId(); 
-    }
-  } catch (e) { 
-    console.log("Error copiando dictamen: " + e.message); 
-    return null;
-  }
-}
-
-function subirArchivo(blob, folder, nombreBase) {
-  if (!blob || typeof blob.getContentType !== 'function') return ""; 
-  const bytes = blob.getBytes();
-  if (bytes.length === 0) return "";
-  
-  const mimeType = blob.getContentType();
-  if (mimeType !== 'application/pdf' && mimeType !== 'application/octet-stream') console.log("Warn: " + mimeType);
-
-  try {
-    const safeName = nombreBase.replace(/[^a-zA-Z0-9-_]/g, '_');
-    blob.setName(safeName + ".pdf");
-    return folder.createFile(blob).getUrl();
-  } catch (e) { 
-    throw new Error("Error interno subiendo archivo (" + nombreBase + "): " + e.message);
-  }
-}
-
-function obtenerDatosRol(form, folder, prefix, rol) {
-  const nombre = form[`${prefix}_nombre_${rol}`];
-  // Si no hay nombre, devolvemos vacio.
-  // Nota: En 'Cambio de Referente', los inputs no chequeados están disabled 
-  // y no envían valor, así que esta línea los filtra correctamente.
-  if (!nombre || nombre === "") {
-      return { nombre: "", jv: "", urlAtest: "", urlAnual: "", urlCarnet: "", urlCarta: "" };
-  }
-  
-  const jv = form[`${prefix}_jv_${rol}`] || "N/A"; 
-
-  const urlAtest = subirArchivo(form[`${prefix}_file_${rol}_atestados`], folder, `${prefix}_${rol}_Atestados`);
-  const urlAnual = subirArchivo(form[`${prefix}_file_${rol}_anualidad`], folder, `${prefix}_${rol}_Anualidad`);
-  const urlCarnet = subirArchivo(form[`${prefix}_file_${rol}_carnet`], folder, `${prefix}_${rol}_Carnet`);
-  const urlCarta = subirArchivo(form[`${prefix}_file_${rol}_carta`], folder, `${prefix}_${rol}_Carta`);
-  
-  // Archivo Respaldo (Extranjero)
-  const urlRespaldo = subirArchivo(form[`${prefix}_file_${rol}_respaldo`], folder, `${prefix}_${rol}_Respaldo_Profesional`);
-
-  // Si hay respaldo, lo ponemos en la variable del carnet para que se guarde en esa columna
-  let carnetFinal = urlCarnet;
-  if (urlRespaldo !== "") {
-      carnetFinal = urlRespaldo + " (Doc. Respaldo)";
-  }
-
-  return {
-    nombre: nombre,
-    jv: jv,
-    urlAtest: urlAtest,
-    urlAnual: urlAnual,
-    urlCarnet: carnetFinal, 
-    urlCarta: urlCarta
-  };
-}
-
-// llena los dictamenes de acuerdo al tipo de establecimiento
-function llenarDictamen(idArchivo, formObject, correlativo, nombreArchivoBase, urlCarpeta) {
-  try {
-    const ss = SpreadsheetApp.openById(idArchivo);
-    const hoja = ss.getSheets()[0]; 
-
-    const mapa = COORDENADAS_DICTAMENES[nombreArchivoBase];
-    if (!mapa) return;
-
-    // --- FUNCIÓN HELPER PARA EVITAR ERRORES ---
-    // Convierte a mayúsculas si existe texto, si no, devuelve vacío ""
-    const safeUpper = (texto) => (texto ? String(texto).toUpperCase() : "");
-
-    // 1. DATOS GENERALES
-    if (mapa.fecha)       hoja.getRange(mapa.fecha).setValue(new Date() );
-    if (mapa.correlativo) hoja.getRange(mapa.correlativo).setValue(correlativo);
-    
-    // Aquí solía fallar si ni_nombreSolicitante era undefined
-    if (mapa.solicitante) hoja.getRange(mapa.solicitante).setValue(safeUpper(formObject.ni_nombreSolicitante));
-    if (mapa.cargo)       hoja.getRange(mapa.cargo).setValue(safeUpper(formObject.ni_cargoSolicitante));
-
-    // 2. DATOS NUEVOS (Link y Tipo)
-    if (mapa.tipoEstablecimiento) hoja.getRange(mapa.tipoEstablecimiento).setValue(safeUpper(formObject.ni_tipoEstablecimiento));
-    if (mapa.linkCarpeta && urlCarpeta) hoja.getRange(mapa.linkCarpeta).setValue(urlCarpeta);
-
-    // 3. REFERENTES (Titular)
-    // Verificamos si existe la coordenada Y si existe el dato
-    if (mapa.nombreTitular) {
-        // Probamos con las dos posibles claves (por si acaso hubo error de dedo)
-        const val = formObject.ni_nombre_titular || "";
-        hoja.getRange(mapa.nombreTitular).setValue(safeUpper(val));
-    }
-    if (mapa.jvTitular) {
-        const val = formObject.ni_jv_titular || "";
-        hoja.getRange(mapa.jvTitular).setValue(val);
-    }
-
-    // 4. SUPLENTE
-    if (mapa.nombreSuplente) {
-        const val = formObject.ni_nombre_suplente || "";
-        hoja.getRange(mapa.nombreSuplente).setValue(safeUpper(val));
-    }
-    if (mapa.jvSuplente) {
-        const val = formObject.ni_jv_suplente || "";
-        hoja.getRange(mapa.jvSuplente).setValue(val);
-    }
-
-    // 5. ESAVI
-    if (mapa.nombreEsavi) {
-        const val = formObject.ni_nombre_esavi || "";
-        hoja.getRange(mapa.nombreEsavi).setValue(safeUpper(val));
-    }
-    if (mapa.jvEsavi) {
-        const val = formObject.ni_jv_esavi || "";
-        hoja.getRange(mapa.jvEsavi).setValue(val);
-    }
-
-    // 6. LOCAL
-    if (mapa.nombreLocal) {
-        const val = formObject.ni_nombre_local || "";
-        hoja.getRange(mapa.nombreLocal).setValue(safeUpper(val));
-    }
-    if (mapa.jvLocal) {
-        const val = formObject.ni_jv_local || "";
-        hoja.getRange(mapa.jvLocal).setValue(val);
-    }
-
-    SpreadsheetApp.flush();
-
-  } catch (e) {
-    console.log("Error crítico llenando dictamen: " + e.message);
-  }
-}
-
-// --- FUNCIÓN PARA BUSCAR LA CARPETA ORIGINAL DEL TRÁMITE ---
-function buscarCarpetaExpediente(correlativo) {
-  try {
-    // 1. Desglosar el código (Ej: RFV-2026-0005)
-    const partes = correlativo.split('-');
-    if (partes.length < 2) return null; // Formato inválido
-    
-    const anio = partes[1]; // "2026"
-    
-    // 2. Ir a la carpeta Raíz de GESTIÓN
-    const rootFolder = DriveApp.getFolderById(ID_FOLDER_GESTION);
-    
-    // 3. Buscar la carpeta del AÑO
-    const carpetasAnio = rootFolder.getFoldersByName(anio);
-    if (!carpetasAnio.hasNext()) return null; // No existe carpeta del año 2026
-    
-    const carpetaAnio = carpetasAnio.next();
-    
-    // 4. Buscar la carpeta del EXPEDIENTE dentro del año
-    const carpetasExpediente = carpetaAnio.getFoldersByName(correlativo);
-    
-    if (carpetasExpediente.hasNext()) {
-      return carpetasExpediente.next(); //  Devolvemos la carpeta.
-    } else {
-      return null; // No existe ese expediente
-    }
-  } catch (e) {
-    console.log("Error buscando carpeta: " + e.message);
-    return null;
-  }
-}
-
-// =========================================================
-//  FUNCIÓN AUXILIAR: RECOPILAR CORREOS (PRINCIPAL + EXTRAS)
-// =========================================================
-function recopilarCorreos(formObject, prefix) {
-  let listaCorreos = [];
-  
-  // 1. Correo Principal (Ej: ni_email)
-  const mainEmail = formObject[prefix + '_email'];
-  if (mainEmail && mainEmail.trim() !== "") {
-    listaCorreos.push(mainEmail.trim());
-  }
-  
-  // 2. Correos Extra (Ej: ni_email_2, ni_email_3...)
-  // El HTML permite hasta 3 extras (ids terminan en 2, 3 y 4)
-  for (let i = 2; i <= 4; i++) {
-    const key = prefix + '_email_' + i;
-    const correoExtra = formObject[key];
-    
-    if (correoExtra && correoExtra.trim() !== "") {
-      listaCorreos.push(correoExtra.trim());
-    }
-  }
-  
-  // Retorna un string unido por comas, listo para MailApp
-  // Ej: "jefe@farmacia.com, asistente@farmacia.com"
-  return listaCorreos.join(",");
-}
+    // Activar al cargar la página por primera vez
+    window.addEventListener('load', activarTooltips);
+  </script>
+</body>
+</html>
