@@ -170,11 +170,7 @@
 
             <div id="ni_restodelFormulario" class="d-none">
                 <div class="row g-3">
-                  <div class="col-md-6">
-                    <label class="form-label fw-bold">Fecha de Ingreso de Solicitud</label>
-                    <input type="date" class="form-control" id="ni_fecha" name="ni_fecha" required data-bs-toggle="tooltip" data-bs-placement="top" 
-                    title="Seleccione la fecha en que está realizando este trámite.">
-                  </div>
+                  
                   <div class="col-md-6">
                     <label class="form-label fw-bold">Tipo de Establecimiento</label>
                     <select class="form-select" id="ni_tipoEstablecimiento" name="ni_tipoEstablecimiento" onchange="configurarReferentesNI()" required data-bs-toggle="tooltip" title="Seleccione el rubro según su licencia de funcionamiento.">
@@ -310,12 +306,7 @@
                         <input type="text" class="form-control" id="sub_correlativo" name="sub_correlativo"  required 
                         data-bs-toggle="tooltip" title="correlativo de solicitud que se le brindo al realizar el nombramiento de referentes (Ej: RFV-2026-0030)" required placeholder="RFV-0000-0000">
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Fecha</label>
-                        <input type="date" class="form-control" id="sub_fecha" name="sub_fecha" required
-                        data-bs-toggle="tooltip" data-bs-placement="top" 
-                        title="Seleccione la fecha en que está realizando este trámite.">
-                    </div>
+                    
 
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Tipo Establecimiento</label>
@@ -331,11 +322,10 @@
                       <option value="Laboratorio">Laboratorio</option>
                       <option value="Farmacia">Farmacia</option>
                       <option value="Prestador">Prestador de Servicios de Salud</option>
-                      </select>
-                              
+                      </select>       
                     </div>
 
-                    <div class="col-md-6"></div>
+                    
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Nombre Solicitante</label>
                         <input type="text" class="form-control" id="sub_nombreSolicitante" name="sub_nombreSolicitante" required
@@ -390,12 +380,7 @@
                     <div class="col-md-4"><label class="fw-bold">N. Solicitud</label><input type="text" class="form-control" name="at_correlativo" required
                     data-bs-toggle="tooltip" title="correlativo de solicitud que se le brindo al realizar el nombramiento de referentes (Ej: RFV-2026-0030)" required placeholder="RFV-0000-0000"></div>
 
-                  <div class="col-md-6">
-                        <label class="form-label fw-bold">Fecha</label>
-                        <input type="date" class="form-control" id="at_fecha" name="at_fecha" required
-                        data-bs-toggle="tooltip" data-bs-placement="top" 
-       title="Seleccione la fecha en que está realizando este trámite.">
-                    </div>
+                  
                     
                     <div class="col-6"><label class="fw-bold">Tipo Referente</label><select class="form-select" name="at_tipoReferente"><option>Titular</option><option>Suplente</option><option>ESAVI</option><option>Local</option></select></div>
                     <div class="col-6"><label class="fw-bold">Correlativo Ref.</label><input type="text" class="form-control" name="at_correlativoReferente" required
