@@ -1,7 +1,7 @@
 // --- CONFIGURACIÓN DE IDs ---
 const ID_FOLDER_GESTION     = "1duuPt6vgjtJsy1HIh062vD1YdqJ3p6Lm";
-const ID_FOLDER_SUBSANACION = "1nrhlmxEA9fwFfni6yyxgqXEmsi_uVeai";
-const ID_FOLDER_ATESTADOS   = "1592GAYi7AruWEGHFwhYGEpGvnwr4a_XQ";
+//const ID_FOLDER_SUBSANACION = "1nrhlmxEA9fwFfni6yyxgqXEmsi_uVeai";
+//const ID_FOLDER_ATESTADOS   = "1592GAYi7AruWEGHFwhYGEpGvnwr4a_XQ";
 const ID_FOLDER_DICTAMENES  = "1Isb_1gtt1_uNA0hDA2m4j2lJ0ijQGfdv";
 
 const ID_SHEET = "1ESor7hY9VI-oxkXofm-tGAffjWN4iQ1krInICrFeLWA";
@@ -188,7 +188,7 @@ function procesarFormulario(formObject) {
       filaBase[0] = nuevoCorrelativo;              // A
       filaBase[1] = urlCarpeta;                    // B
       filaBase[2] = formObject.ni_tipoSolicitud;   // C 
-      filaBase[3] = formObject.ni_fecha;           // D
+      filaBase[3] = new Date();            // D
 
       // NOTA: Dejamos filaBase[6] vacía aquí, porque la llenaremos en el bucle abajo con el nombre específico
 
@@ -295,7 +295,7 @@ function procesarFormulario(formObject) {
       fila[0] = codigoInput;          // A
       fila[1] = carpetaSubsanacion.getUrl(); // B (Link directo a la subcarpeta)
 	fila[2] ='Subsanación de observaciones'; 
-      fila[3] = formObject.sub_fecha; 
+      fila[3] = new Date(); 
       fila[8] = formObject.sub_tipoEstablecimiento; 
       fila[14] = formObject.sub_nombreSolicitante;   
       fila[15] = formObject.sub_cargoSolicitante;    
@@ -354,7 +354,7 @@ function procesarFormulario(formObject) {
       fila[0] = codigoInput;        
       fila[1] = carpetaEvaluacion.getUrl(); // Link a la subcarpeta
 	fila[2] ='SOLICITUD DE EVALUACION DE ATESTADOS'; 
-      fila[4] = formObject.at_fecha;
+      fila[4] = new Date();
       fila[5] = formObject.at_tipoEstablecimiento; 
       fila[15] = correoPrincipal; 
 
@@ -548,7 +548,7 @@ function llenarDictamen(idArchivo, formObject, correlativo, nombreArchivoBase, u
     const safeUpper = (texto) => (texto ? String(texto).toUpperCase() : "");
 
     // 1. DATOS GENERALES
-    if (mapa.fecha)       hoja.getRange(mapa.fecha).setValue(formObject.ni_fecha);
+    if (mapa.fecha)       hoja.getRange(mapa.fecha).setValue(new Date() );
     if (mapa.correlativo) hoja.getRange(mapa.correlativo).setValue(correlativo);
     
     // Aquí solía fallar si ni_nombreSolicitante era undefined
