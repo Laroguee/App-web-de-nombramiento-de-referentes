@@ -13,7 +13,7 @@ const MAPA_DICTAMENES = {
 
   "TRS_Extranjero": "dictamen_3",
 
-  "Botiquin": "dictamen_4",
+  "Botiquin": "dictamen_4", "Institucional_Local": "dictamen_4",
 
   "Institucional": "dictamen_5"
 };
@@ -155,18 +155,21 @@ function procesarFormulario(formObject) {
       // 1. Obtener carpeta RAÍZ > Carpeta AÑO
       const parentFolder = obtenerCarpetaDelAnio(ID_FOLDER_GESTION);
       
-      // 2. Crear carpeta SOLICITUD (Solo una carpeta por trámite, aunque sean 50 farmacias)
+      // 2. Crear carpeta SOLICITUD
       const carpetaTramite = parentFolder.createFolder(nuevoCorrelativo);
       const urlCarpeta = carpetaTramite.getUrl();
 
+       // --- LOGICA DE CORREOS ---
+      const correoPrincipal = formObject.ni_email; 
+      const todosLosCorreos = recopilarCorreos(formObject, 'ni'); 
 
-      // A. Obtener nombre base del archivo según el mapa
+      // A. Obtener nombre base del archivo
       const nombreArchivoBase = MAPA_DICTAMENES[formObject.ni_tipoEstablecimiento];
 
-      // B. Copiar dictamen y OBTENER SU ID (Solo una vez)
+      // B. Copiar dictamen
       const idDictamenNuevo = copiarDictamen(formObject.ni_tipoEstablecimiento, carpetaTramite);
 
-      // C. Llenar el dictamen recién creado
+      // C. Llenar el dictamen
       if (idDictamenNuevo && nombreArchivoBase) {
          llenarDictamen(idDictamenNuevo, formObject, nuevoCorrelativo, nombreArchivoBase, urlCarpeta);
       } else {
@@ -179,56 +182,81 @@ function procesarFormulario(formObject) {
       const esavi = obtenerDatosRol(formObject, carpetaTramite, 'ni', 'esavi');
       const local = obtenerDatosRol(formObject, carpetaTramite, 'ni', 'local');
 
-      // --- PREPARAR LA FILA BASE ---
-      let filaBase = new Array(40).fill(""); 
+      // --- PREPARAR LA FILA BASE (Datos comunes para todos los establecimientos) ---
+      let filaBase = new Array(50).fill(""); // Aumenté a 50 para seguridad de índices
 
       filaBase[0] = nuevoCorrelativo;              // A
       filaBase[1] = urlCarpeta;                    // B
       filaBase[2] = formObject.ni_tipoSolicitud;   // C 
       filaBase[3] = formObject.ni_fecha;           // D
 
+      // NOTA: Dejamos filaBase[6] vacía aquí, porque la llenaremos en el bucle abajo con el nombre específico
+
       filaBase[8] = formObject.ni_tipoEstablecimiento; // I
-      filaBase[9] = formObject.ni_conglomerado;    // J
-      filaBase[10] = formObject.ni_cantidadEstablecimientos || "N/A"; // K
-      filaBase[14] = formObject.ni_nombreSolicitante; // O
-      filaBase[15] = formObject.ni_cargoSolicitante;  // P
+      filaBase[9] = formObject.ni_conglomerado || "N/A"; // J
+      //filaBase[10] = formObject.ni_cantidadEstablecimientos || "N/A"; // K
+      filaBase[14] = formObject.ni_nombreSolicitante || "N/A"; // O
+      filaBase[15] = formObject.ni_cargoSolicitante || "N/A";  // P
       
       // Datos Referentes
-      filaBase[16] = titular.nombre;               
-      filaBase[17] = titular.jv;                   
-      filaBase[18] = suplente.nombre;              
-      filaBase[19] = suplente.jv;                  
-      filaBase[20] = local.nombre;                 
-      filaBase[21] = local.jv;                     
-      filaBase[22] = esavi.nombre;                 
-      filaBase[23] = esavi.jv;                     
+      filaBase[16] = titular.nombre || "N/A";               
+      filaBase[17] = titular.jv || "N/A";                   
+      filaBase[18] = suplente.nombre || "N/A";              
+      filaBase[19] = suplente.jv || "N/A";                  
+      filaBase[20] = local.nombre || "N/A";                 
+      filaBase[21] = local.jv || "N/A";                     
+      filaBase[22] = esavi.nombre || "N/A";                 
+      filaBase[23] = esavi.jv || "N/A";                     
 
-      // Correo
-      filaBase[49] = formObject.ni_email; // Columna 
+      // Correo 
+      filaBase[49] = correoPrincipal; 
 
-      // --- LÓGICA DE DUPLICACIÓN (CONGLOMERADO) ---
-      let cantidadRepeticiones = 1;
+      // =========================================================
+      //  LÓGICA DE LISTA DE NOMBRES
+      // =========================================================
+      
+      let listaNombres = [];
+      
+      // 1. Intentamos leer la lista JSON que viene del HTML
+      try {
+        if (formObject.ni_lista_nombres_final) {
+           listaNombres = JSON.parse(formObject.ni_lista_nombres_final);
+        }
+      } catch (e) { console.log("Error leyendo lista nombres: " + e.message); }
 
-      // Si es conglomerado "Si" y hay un número válido, usamos ese número
-      if (formObject.ni_conglomerado === "Si" && formObject.ni_cantidadEstablecimientos) {
-          cantidadRepeticiones = parseInt(formObject.ni_cantidadEstablecimientos);
-          // Validación por si ponen 0 o texto raro
-          if (isNaN(cantidadRepeticiones) || cantidadRepeticiones < 1) cantidadRepeticiones = 1;
+      // 2. Seguridad: Si la lista está vacía, agregamos uno genérico para que se guarde al menos una fila
+      if (listaNombres.length === 0) {
+         // Si tenías un campo manual de respaldo, úsalo aquí, si no:
+         listaNombres.push("NOMBRE NO ESPECIFICADO"); 
       }
 
-      // Creamos un array que contenga la fila repetida N veces
       let bloqueDeFilas = [];
-      for (let i = 0; i < cantidadRepeticiones; i++) {
-          // Usamos [...filaBase] para crear una copia y no una referencia
-          bloqueDeFilas.push([...filaBase]);
-      }
+
+      filaBase[10] = listaNombres.length;
+
+      // 3. Recorremos cada nombre y creamos su propia fila
+      listaNombres.forEach(nombreEstab => {
+          // Copiamos la fila base
+          let filaIndividual = [...filaBase];
+          
+          // ASIGNAMOS EL NOMBRE EN LA COLUMNA G (Índice 10)
+          // Asegúrate que en tu Excel la Columna G sea "Nombre Establecimiento"
+          filaIndividual[12] = nombreEstab; 
+
+          bloqueDeFilas.push(filaIndividual);
+      });
 
       // --- GUARDADO MASIVO ---
-      // Escribimos el bloque completo de una sola vez
       sheet.getRange(sheet.getLastRow() + 1, 1, bloqueDeFilas.length, filaBase.length).setValues(bloqueDeFilas);
 
-      // *** ENVIAR CORREO (Solo uno por solicitud) ***
-      enviarCorreoConfirmacion(formObject.ni_email, "Nombramiento de Referentes de Farmacovigilancia", nuevoCorrelativo, formObject.ni_nombreSolicitante);
+      // *** ENVIO CON ADJUNTO ***
+      enviarCorreoConfirmacion(
+          todosLosCorreos, 
+          "Nuevo Ingreso", 
+          nuevoCorrelativo, 
+          formObject.ni_nombreSolicitante, 
+          formObject.file_ni_nombramiento 
+      );
 
       return "Exito|" + nuevoCorrelativo;
     }
@@ -238,28 +266,57 @@ function procesarFormulario(formObject) {
     // =========================================================
     else if (formObject.sub_correlativo) {
       const sheet = ss.getSheetByName("BITACORA DE RFV");
-      const parentFolder = obtenerCarpetaDelAnio(ID_FOLDER_SUBSANACION);
+      const codigoInput = formObject.sub_correlativo.trim().toUpperCase(); // Ej: RFV-2026-0005
       
-      const nombreCarpeta = formObject.sub_correlativo.trim().toUpperCase();
-      const carpetaTramite = parentFolder.createFolder(nombreCarpeta + " (Subsanación)");
-      const urlCarpeta = carpetaTramite.getUrl();
+      // 1. BUSCAR LA CARPETA ORIGINAL
+      const carpetaExpediente = buscarCarpetaExpediente(codigoInput);
       
-      const urlDocs = subirArchivo(formObject.file_sub_documentos, carpetaTramite, "SUB_" + nombreCarpeta);
+      if (!carpetaExpediente) {
+        return "Error: No se encontró ningún expediente con el código " + codigoInput + ". Verifique que esté bien escrito, de la siguiente manera RFV-2026-XXXX.";
+      }
 
+      // 2. VALIDAR SI YA EXISTE SUBSANACIÓN (Para evitar duplicados)
+      const subCarpetas = carpetaExpediente.getFoldersByName("Subsanación");
+      if (subCarpetas.hasNext()) {
+        return "Error: Este expediente (" + codigoInput + ") ya tiene una subsanación registrada. No se permite enviar más de una vez.";
+      }
+
+      // 3. CREAR LA SUBCARPETA DE SUBSANACIÓN DENTRO DE LA ORIGINAL
+      const carpetaSubsanacion = carpetaExpediente.createFolder("Subsanación");
+      
+      // 4. SUBIR ARCHIVOS A ESA NUEVA SUBCARPETA
+      const urlDocs = subirArchivo(formObject.file_sub_documentos, carpetaSubsanacion, "SUB_" + codigoInput);
+
+      const correoPrincipal = formObject.sub_email;
+      const todosLosCorreos = recopilarCorreos(formObject, 'sub');
+
+      // 5. GUARDAR EN SHEET
       let fila = new Array(20).fill("");
-      fila[0] = nombreCarpeta;        
-      fila[1] = urlCarpeta;  
-      fila[2] ='Subsanación de observaciones';        
+      fila[0] = codigoInput;          // A
+      fila[1] = carpetaSubsanacion.getUrl(); // B (Link directo a la subcarpeta)
+	fila[2] ='Subsanación de observaciones'; 
       fila[3] = formObject.sub_fecha; 
       fila[8] = formObject.sub_tipoEstablecimiento; 
       fila[14] = formObject.sub_nombreSolicitante;   
       fila[15] = formObject.sub_cargoSolicitante;    
-      fila[49] = formObject.sub_email; // Columna I
+      fila[49] = correoPrincipal; 
 
       sheet.getRange(sheet.getLastRow() + 1, 1, 1, fila.length).setValues([fila]);
-      enviarCorreoConfirmacion(formObject.sub_email, "Subsanación", nombreCarpeta, formObject.sub_nombreSolicitante);
+      
+      // 6. ENVIAR CORREO
+      
 
-      return "Exito|Subsanación recibida para: " + nombreCarpeta;
+      // *** ENVIO CON ADJUNTO ***
+      // Pasamos el archivo de subsanación
+      enviarCorreoConfirmacion(
+          todosLosCorreos, 
+          "Subsanación", 
+          codigoInput, 
+          formObject.sub_nombreSolicitante,
+          formObject.file_sub_documentos // <--- AQUÍ VA EL ARCHIVO
+      );
+
+      return "Exito|Subsanación registrada correctamente en el expediente: " + codigoInput;
     }
 
     // =========================================================
@@ -267,26 +324,54 @@ function procesarFormulario(formObject) {
     // =========================================================
     else if (formObject.at_correlativo) {
       const sheet = ss.getSheetByName("BITACORA DE ATESTADOS");
-      const parentFolder = obtenerCarpetaDelAnio(ID_FOLDER_ATESTADOS);
-      
-      const nombreCarpeta = formObject.at_correlativo.trim().toUpperCase();
-      const carpetaTramite = parentFolder.createFolder(nombreCarpeta + " (Evaluación)");
-      const urlCarpeta = carpetaTramite.getUrl(); 
+      const codigoInput = formObject.at_correlativo.trim().toUpperCase();
 
-      const urlDocs = subirArchivo(formObject.file_at_atestados, carpetaTramite, "EVAL_" + nombreCarpeta);
+      // 1. BUSCAR LA CARPETA ORIGINAL
+      const carpetaExpediente = buscarCarpetaExpediente(codigoInput);
+      
+      if (!carpetaExpediente) {
+        return "Error: No se encontró ningún expediente con el código " + codigoInput + ". Verifique que esté bien escrito, de la siguiente manera RFV-2026-XXXX";
+      }
+
+      // 2. CREAR SUBCARPETA "EVALUACIÓN DE ATESTADOS" 
+      let carpetaEvaluacion;
+      const checkFolder = carpetaExpediente.getFoldersByName("Evaluación de Atestados");
+      if (checkFolder.hasNext()) {
+         carpetaEvaluacion = checkFolder.next(); // Ya existía, usamos la misma
+      } else {
+         carpetaEvaluacion = carpetaExpediente.createFolder("Evaluación de Atestados");
+      }
+
+      // 3. SUBIR ARCHIVOS
+      const urlDocs = subirArchivo(formObject.file_at_atestados,carpetaEvaluacion, "EVAL_" + codigoInput);
+
+      const urlFormulario = subirArchivo(formObject.file_at_formulario, carpetaEvaluacion, "EVAL_Formulario_" + codigoInput);
+
+      const correoPrincipal = formObject.at_email;
+      const todosLosCorreos = recopilarCorreos(formObject, 'at');
 
       let fila = new Array(20).fill("");
-      fila[0] = nombreCarpeta;        
-      fila[1] = urlCarpeta; 
-      fila[2] ='SOLICITUD DE EVALUACION DE ATESTADOS';           
-      fila[4] = formObject.at_fecha;           
+      fila[0] = codigoInput;        
+      fila[1] = carpetaEvaluacion.getUrl(); // Link a la subcarpeta
+	fila[2] ='SOLICITUD DE EVALUACION DE ATESTADOS'; 
+      fila[4] = formObject.at_fecha;
       fila[5] = formObject.at_tipoEstablecimiento; 
-      fila[15] = formObject.at_email; // Columna I
+      fila[15] = correoPrincipal; 
 
       sheet.getRange(sheet.getLastRow() + 1, 1, 1, fila.length).setValues([fila]);
-      enviarCorreoConfirmacion(formObject.at_email, "Evaluación Atestados", nombreCarpeta, "Usuario");
+      
 
-      return "Exito|Evaluación recibida para: " + nombreCarpeta;
+      // *** ENVIO CON ADJUNTO ***
+      // Pasamos el FORMULARIO de evaluación (el nuevo)
+      enviarCorreoConfirmacion(
+          todosLosCorreos, 
+          "Evaluación Atestados", 
+          codigoInput, 
+          "Usuario",
+          formObject.file_at_formulario // <--- AQUÍ VA EL ARCHIVO
+      );
+
+      return "Exito|Evaluación agregada al expediente: " + codigoInput;
     }
 
   } catch (e) {
@@ -310,17 +395,59 @@ function obtenerCarpetaDelAnio(idCarpetaRaiz) {
   }
 }
 
-function enviarCorreoConfirmacion(emailDestino, tipoTramite, correlativo, nombre) {
+// =========================================================
+//  FUNCIÓN DE ENVÍO DE CORREOS (CON ADJUNTO)
+// =========================================================
+function enviarCorreoConfirmacion(emailDestino, tipoTramite, correlativo, nombre, archivoAdjunto) {
   if (!emailDestino) return;
-  let asunto = (tipoTramite === "Nombramiento de Referentes de Farmacovigilancia") ? "✅ Confirmación SRS - " + correlativo : "✅ Documentos Recibidos - " + correlativo;
-  let cuerpo = `
-      <div style="font-family: Arial, sans-serif; color: #333;">
-        <h3>Estimado Usuario/a ${nombre || ''},</h3>
-        <p>Trámite de <strong>${tipoTramite}</strong> registrado exitosamente.</p>
-        <p>Solicitud: <strong>${correlativo}</strong></p>
+
+  let asunto = "";
+  let cuerpo = "";
+  const estilo = 'font-family: Arial, sans-serif; color: #333; line-height: 1.5;';
+  const estiloCodigo = 'font-size: 18px; font-weight: bold; color: #003366; background: #e6f0ff; padding: 10px; display: inline-block; border-radius: 5px;';
+
+  if (tipoTramite === "Nuevo Ingreso") {
+    asunto = "✅ Confirmación SRS - " + correlativo;
+    cuerpo = `
+      <div style="${estilo}">
+        <h3>Estimado/a ${nombre || ''},</h3>
+        <p>Su solicitud de <strong>Nombramiento de referentes</strong> ha sido registrada exitosamente.</p>
+        <p>Número de solicitud generado:</p>
+        <p><span style="${estiloCodigo}">${correlativo}</span></p>
+        <p>Adjunto encontrará una copia de su formulario de solicitud.</p>
         <hr><small>Mensaje automático SRS.</small>
       </div>`;
-  try { MailApp.sendEmail({ to: emailDestino, subject: asunto, htmlBody: cuerpo }); } catch (e) { console.log(e.message); }
+  } else {
+    asunto = "✅ Documentos Recibidos - " + correlativo;
+    cuerpo = `
+      <div style="${estilo}">
+        <h3>Estimado Usuario,</h3>
+        <p>Hemos recibido documentación para el trámite de <strong>${tipoTramite}</strong> asociado a la solicitud:</p>
+        <p><span style="${estiloCodigo}">${correlativo}</span></p>
+        <p>Adjunto encontrará una copia del documento enviado como respaldo.</p>
+        <hr><small>Mensaje automático SRS.</small>
+      </div>`;
+  }
+
+  // Configuración del correo
+  const opcionesCorreo = {
+    to: emailDestino,
+    subject: asunto,
+    htmlBody: cuerpo
+  };
+
+  // Si hay archivo, lo agregamos
+  if (archivoAdjunto) {
+    // Le ponemos el nombre del correlativo al archivo para que se vea profesional
+    archivoAdjunto.setName(correlativo + ".pdf");
+    opcionesCorreo.attachments = [archivoAdjunto];
+  }
+
+  try {
+    MailApp.sendEmail(opcionesCorreo);
+  } catch (e) {
+    console.log("Error enviando correo: " + e.message);
+  }
 }
 
 function obtenerSiguienteCorrelativoMemoria() {
@@ -479,4 +606,64 @@ function llenarDictamen(idArchivo, formObject, correlativo, nombreArchivoBase, u
   } catch (e) {
     console.log("Error crítico llenando dictamen: " + e.message);
   }
+}
+
+// --- FUNCIÓN PARA BUSCAR LA CARPETA ORIGINAL DEL TRÁMITE ---
+function buscarCarpetaExpediente(correlativo) {
+  try {
+    // 1. Desglosar el código (Ej: RFV-2026-0005)
+    const partes = correlativo.split('-');
+    if (partes.length < 2) return null; // Formato inválido
+    
+    const anio = partes[1]; // "2026"
+    
+    // 2. Ir a la carpeta Raíz de GESTIÓN
+    const rootFolder = DriveApp.getFolderById(ID_FOLDER_GESTION);
+    
+    // 3. Buscar la carpeta del AÑO
+    const carpetasAnio = rootFolder.getFoldersByName(anio);
+    if (!carpetasAnio.hasNext()) return null; // No existe carpeta del año 2026
+    
+    const carpetaAnio = carpetasAnio.next();
+    
+    // 4. Buscar la carpeta del EXPEDIENTE dentro del año
+    const carpetasExpediente = carpetaAnio.getFoldersByName(correlativo);
+    
+    if (carpetasExpediente.hasNext()) {
+      return carpetasExpediente.next(); //  Devolvemos la carpeta.
+    } else {
+      return null; // No existe ese expediente
+    }
+  } catch (e) {
+    console.log("Error buscando carpeta: " + e.message);
+    return null;
+  }
+}
+
+// =========================================================
+//  FUNCIÓN AUXILIAR: RECOPILAR CORREOS (PRINCIPAL + EXTRAS)
+// =========================================================
+function recopilarCorreos(formObject, prefix) {
+  let listaCorreos = [];
+  
+  // 1. Correo Principal (Ej: ni_email)
+  const mainEmail = formObject[prefix + '_email'];
+  if (mainEmail && mainEmail.trim() !== "") {
+    listaCorreos.push(mainEmail.trim());
+  }
+  
+  // 2. Correos Extra (Ej: ni_email_2, ni_email_3...)
+  // El HTML permite hasta 3 extras (ids terminan en 2, 3 y 4)
+  for (let i = 2; i <= 4; i++) {
+    const key = prefix + '_email_' + i;
+    const correoExtra = formObject[key];
+    
+    if (correoExtra && correoExtra.trim() !== "") {
+      listaCorreos.push(correoExtra.trim());
+    }
+  }
+  
+  // Retorna un string unido por comas, listo para MailApp
+  // Ej: "jefe@farmacia.com, asistente@farmacia.com"
+  return listaCorreos.join(",");
 }
