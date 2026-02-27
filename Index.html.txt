@@ -173,7 +173,7 @@
                   <div class="col-md-6">
                     <label class="form-label fw-bold">Fecha de Ingreso de Solicitud</label>
                     <input type="date" class="form-control" id="ni_fecha" name="ni_fecha" required data-bs-toggle="tooltip" data-bs-placement="top" 
-       title="Seleccione la fecha en que está realizando este trámite.">
+                    title="Seleccione la fecha en que está realizando este trámite.">
                   </div>
                   <div class="col-md-6">
                     <label class="form-label fw-bold">Tipo de Establecimiento</label>
@@ -182,7 +182,8 @@
                       <option value="TRS_Nacional">Titular Registro Sanitario (Nacional)</option>
                       <option value="TRS_Extranjero">Titular Registro Sanitario (Internacional)</option>
                       <option value="Institucional">Institucional (ISSS, MINSAL, ISBM...)</option>
-                      <option value="Botiquin">Botiquín Hospitalario</option>
+                      <option value="Institucional_Local">Institucional Local (Unidades médicas, Clinicas, Hospitales...)</option>
+                      <option value="Botiquin">Botiquín</option>
                       <option value="Drogueria">Droguería</option>
                       <option value="Laboratorio">Laboratorio</option>
                       <option value="Farmacia">Farmacia</option>
@@ -197,9 +198,34 @@
                     </select>
                   </div>
                   <div class="col-md-6 d-none" id="div_ni_numEstablecimientos">
-                    <label class="form-label fw-bold text-danger">Número de Establecimientos</label>
-                    <input type="number" class="form-control" id="ni_cantidadEstablecimientos" name="ni_cantidadEstablecimientos" min="1" placeholder="Ingrese cantidad">
+                  <label class="form-label fw-bold text-danger">Cantidad (Automático)</label>
+                  <!-- AGREGAMOS 'readonly' y un estilo de fondo gris -->
+                  <input type="number" class="form-control bg-light" 
+                  id="ni_cantidadEstablecimientos" name="ni_cantidadEstablecimientos" 
+                  min="1" value="1" readonly 
+                  data-bs-toggle="tooltip" title="Este número se calcula automáticamente según la lista de nombres agregados abajo.">
                   </div>
+                  <!-- GESTOR DE NOMBRES DE ESTABLECIMIENTOS -->
+                  <div class="col-12 mt-3 p-3 bg-light border rounded">
+                  <label class="form-label fw-bold text-primary">Nombres de los Establecimientos</label>
+                  <p class="small text-muted mb-2">Ingrese los nombres uno por uno y presione "Agregar".</p>
+  
+                  <div class="input-group mb-2">
+                  <input type="text" class="form-control" id="input_nombre_temporal" placeholder="Ej: Farmacia San Nicolás 1">
+                  <button type="button" class="btn btn-secondary" onclick="agregarNombreManual()">
+                   <i class="bi bi-plus-lg"></i> Agregar a la lista
+                  </button>
+                  </div>
+
+                <!-- Aquí se visualiza la lista -->
+                <ul class="list-group mb-0" id="visual_lista_nombres">
+                <!-- Se llenará dinámicamente -->
+                </ul>
+  
+                <!-- Campo oculto que enviará los datos al servidor -->
+                <input type="hidden" id="ni_lista_nombres_final" name="ni_lista_nombres_final">
+                </div>
+
                   <div class="col-md-6">
                     <label class="form-label fw-bold">Nombre del Solicitante</label>
                     <input type="text" class="form-control" id="ni_nombreSolicitante" name="ni_nombreSolicitante" maxlength="100" required
@@ -208,15 +234,33 @@
                   </div>
                   <div class="col-md-6">
                     <label class="form-label fw-bold">Cargo del Solicitante</label>
-                    <input type="text" class="form-control" id="ni_cargoSolicitante" name="ni_cargoSolicitante" maxlength="100" required>
+                     <!-- CAMBIO: Ahora es un SELECT -->
+                    <select class="form-select" id="ni_cargoSolicitante" name="ni_cargoSolicitante" required data-bs-toggle="tooltip" 
+                    title="Seleccione el cargo según la persona jurídica.">
+                   <option value="" selected disabled>Seleccione primero el tipo de establecimiento...</option>
+                  </select>
                   </div>
-                  <div class="col-md-12">
-  <label class="form-label fw-bold text-success">Correo para Notificaciones</label>
-  <input type="email" class="form-control" id="ni_email" name="ni_email" required placeholder="ejemplo@institucion.com"
-  data-bs-toggle="tooltip" title="Asegúrese de que sea un correo válido, aquí recibirá la confirmación.">
-  <small class="text-muted">A este correo se enviará el número de gestión generado.</small>
+                  
+                  <!-- SECCIÓN CORREOS (NUEVO INGRESO) -->
+<div class="col-md-12 mt-3">
+  <label class="form-label fw-bold text-success">Correo para Notificaciones (Principal)</label>
+  <div class="input-group mb-2">
+    <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+    <input type="email" class="form-control" id="ni_email" name="ni_email" required placeholder="principal@institucion.com" data-bs-toggle="tooltip" title="Correo principal obligatorio.">
+    <button type="button" class="btn btn-outline-secondary" onclick="agregarCorreoExtra('ni')" id="btn_add_ni">
+      <i class="bi bi-plus-circle"></i> Agregar otro
+    </button>
+  </div>
+  
+  <!-- Correos Extra (Ocultos por defecto) -->
+  <div id="container_emails_ni">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="ni_email_2" name="ni_email_2" placeholder="Correo adicional 1">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="ni_email_3" name="ni_email_3" placeholder="Correo adicional 2">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="ni_email_4" name="ni_email_4" placeholder="Correo adicional 3">
+  </div>
+  <small class="text-muted">Puede agregar hasta 3 correos adicionales.</small>
 </div>
-                </div>
+              </div>
 
                 <div id="ni_selectorCambio" class="checkbox-card mt-4 d-none">
                     <p class="mb-2 fw-bold text-primary"><i class="bi bi-check2-square"></i> Seleccione el/los referentes que desea cambiar:</p>
@@ -263,31 +307,34 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-bold">No. Solicitud  </label>
-                        <input type="text" class="form-control" id="sub_correlativo" name="sub_correlativo" required
-                        data-bs-toggle="tooltip" title="correlativo de solicitud que se le brindo al realizar el nombramiento de referentes (Ej: RFV-2026-0030)">
+                        <input type="text" class="form-control" id="sub_correlativo" name="sub_correlativo"  required 
+                        data-bs-toggle="tooltip" title="correlativo de solicitud que se le brindo al realizar el nombramiento de referentes (Ej: RFV-2026-0030)" required placeholder="RFV-0000-0000">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Fecha</label>
                         <input type="date" class="form-control" id="sub_fecha" name="sub_fecha" required
                         data-bs-toggle="tooltip" data-bs-placement="top" 
-       title="Seleccione la fecha en que está realizando este trámite.">
+                        title="Seleccione la fecha en que está realizando este trámite.">
                     </div>
+
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Tipo Establecimiento</label>
-                        <select class="form-select" id="sub_tipoEstablecimiento" name="sub_tipoEstablecimiento" required
-                        data-bs-toggle="tooltip" title="Seleccione el rubro según su licencia de funcionamiento.">
-                            <option value="" selected disabled>Seleccione...</option>
+                        <select class="form-select" id="sub_tipoEstablecimiento" name="sub_tipoEstablecimiento" onchange="actualizarCargos('sub')" required>
+                        <!-- ... tus opciones ... -->
+	                    <option value="" selected disabled>Seleccione...</option>
                       <option value="TRS_Nacional">Titular Registro Sanitario (Nacional)</option>
                       <option value="TRS_Extranjero">Titular Registro Sanitario (Internacional)</option>
                       <option value="Institucional">Institucional (ISSS, MINSAL, ISBM...)</option>
-                      <option value="Botiquin">Botiquín Hospitalario</option>
+                      <option value="Institucional_Local">Institucional Local (Unidades médicas, Clinicas, Hospitales...)</option>
+                      <option value="Botiquin">Botiquín</option>
                       <option value="Drogueria">Droguería</option>
                       <option value="Laboratorio">Laboratorio</option>
                       <option value="Farmacia">Farmacia</option>
                       <option value="Prestador">Prestador de Servicios de Salud</option>
-                            
-                        </select>
+                      </select>
+                              
                     </div>
+
                     <div class="col-md-6"></div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Nombre Solicitante</label>
@@ -296,13 +343,26 @@
                      title="Escriba el nombre completo tal como aparece en el DUI/Carnet.">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Cargo</label>
-                        <input type="text" class="form-control" id="sub_cargoSolicitante" name="sub_cargoSolicitante" required>
+                        <label class="form-label fw-bold">Cargo del Solicitante</label>
+                         <!-- CAMBIO: Ahora es un SELECT -->
+                         <select class="form-select" id="sub_cargoSolicitante" name="sub_cargoSolicitante" required>
+                         <option value="" selected disabled>Seleccione primero el tipo de establecimiento...</option>
+                          </select>
                     </div>
-                    <div class="col-12">
+                    <div class="col-12 mt-3">
   <label class="form-label fw-bold text-success">Correo para Notificaciones</label>
-  <input type="email" class="form-control" id="sub_email" name="sub_email" required placeholder="ejemplo@institucion.com"
-  data-bs-toggle="tooltip" title="Asegúrese de que sea un correo válido, aquí recibirá la confirmación.">
+  <div class="input-group mb-2">
+    <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+    <input type="email" class="form-control" id="sub_email" name="sub_email" required placeholder="principal@institucion.com">
+    <button type="button" class="btn btn-outline-secondary" onclick="agregarCorreoExtra('sub')" id="btn_add_sub">
+      <i class="bi bi-plus-circle"></i> Agregar
+    </button>
+  </div>
+  <div id="container_emails_sub">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="sub_email_2" name="sub_email_2" placeholder="Adicional 1">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="sub_email_3" name="sub_email_3" placeholder="Adicional 2">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="sub_email_4" name="sub_email_4" placeholder="Adicional 3">
+  </div>
 </div>
                     <div class="col-12 mt-3">
                         <label class="form-label fw-bold">Adjuntar Documentos (PDF)</label>
@@ -328,7 +388,7 @@
             <form id="formAtestados" onsubmit="procesarEnvioVisual(event, 'Atestados')">
                 <div class="row g-3">
                     <div class="col-md-4"><label class="fw-bold">N. Solicitud</label><input type="text" class="form-control" name="at_correlativo" required
-                    data-bs-toggle="tooltip" title="correlativo de solicitud que se le brindo al realizar el nombramiento de referentes (Ej: RFV-2026-0030)"></div>
+                    data-bs-toggle="tooltip" title="correlativo de solicitud que se le brindo al realizar el nombramiento de referentes (Ej: RFV-2026-0030)" required placeholder="RFV-0000-0000"></div>
 
                   <div class="col-md-6">
                         <label class="form-label fw-bold">Fecha</label>
@@ -342,11 +402,26 @@
                     data-bs-toggle="tooltip" title="Correlativo de nombramiento de referente (Ej: RFT-2026-000, RFS-2026-000...)"></div>
                   <div class="col-12 mt-3">
   <label class="form-label fw-bold text-success">Correo para Notificaciones</label>
-  <!-- OJO: Cambiamos sub_email por at_email -->
-  <input type="email" class="form-control" id="at_email" name="at_email" required data-bs-toggle="tooltip" title="Asegúrese de que sea un correo válido, aquí recibirá la confirmación." placeholder="ejemplo@institucion.com">
+  <div class="input-group mb-2">
+    <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+    <input type="email" class="form-control" id="at_email" name="at_email" required placeholder="principal@institucion.com">
+    <button type="button" class="btn btn-outline-secondary" onclick="agregarCorreoExtra('at')" id="btn_add_at">
+      <i class="bi bi-plus-circle"></i> Agregar
+    </button>
+  </div>
+  <div id="container_emails_at">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="at_email_2" name="at_email_2" placeholder="Adicional 1">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="at_email_3" name="at_email_3" placeholder="Adicional 2">
+    <input type="email" class="form-control mb-2 d-none email-extra" id="at_email_4" name="at_email_4" placeholder="Adicional 3">
+  </div>
 </div>
-                    <div class="col-12 mt-3"><label class="fw-bold">Atestados (PDF)</label><input type="file" class="form-control" name="file_at_atestados" accept=".pdf" required></div>
+                <div class="col-12 mt-3">
+                  <label class="form-label fw-bold">Formulario de Evaluación (PDF)</label>
+                  <input type="file" class="form-control" id="file_at_formulario" name="file_at_formulario" accept=".pdf" required>
                 </div>
+                <div class="col-12 mt-3"><label class="fw-bold">Atestados (PDF)</label><input type="file" class="form-control" name="file_at_atestados" accept=".pdf" required></div>
+                </div>
+                
                 <div class="mt-4 text-end">
                     <button type="submit" class="btn btn-success">Enviar Evaluación</button>
                     <button type="button" class="btn btn-sm btn-outline-info mb-3" data-bs-toggle="modal" data-bs-target="#modalConsejosPDF">
@@ -471,6 +546,53 @@
       document.getElementById('menuPrincipal').classList.remove('d-none');
     }
 
+    // --- CONFIGURACIÓN DE CARGOS SEGÚN ESTABLECIMIENTO ---
+    const OPCIONES_CARGO = {
+      // GRUPO 1: TRS
+      "TRS_Nacional": ["Apoderado legal", "Representante legal"],
+      "TRS_Extranjero": ["Apoderado legal", "Representante legal"],
+
+      // GRUPO 2: Farmacéuticos y Prestadores
+      "Farmacia": ["Propietario", "Apoderado legal", "Representante legal"],
+      "Drogueria": ["Propietario", "Apoderado legal", "Representante legal"],
+      "Laboratorio": ["Propietario", "Apoderado legal", "Representante legal"],
+      "Botiquin": ["Propietario", "Apoderado legal", "Representante legal"],
+      "Prestador": ["Propietario", "Apoderado legal", "Representante legal"],
+
+      // GRUPO 3: Institucionales
+      "Institucional": ["Ministro", "Director"], // Macro (Nombramiento referentes institucionales)
+      "Institucional_Local": ["Director", "Encargado"] // Locales
+    };
+
+    // --- FUNCIÓN PARA ACTUALIZAR EL DROPDOWN DE CARGOS ---
+    function actualizarCargos(prefix) {
+      const tipoSelect = document.getElementById(prefix + '_tipoEstablecimiento');
+      const cargoSelect = document.getElementById(prefix + '_cargoSolicitante');
+      
+      // Obtenemos el valor seleccionado (Ej: "Farmacia")
+      const tipoSeleccionado = tipoSelect.value;
+      
+      // Limpiamos las opciones actuales
+      cargoSelect.innerHTML = '<option value="" selected disabled>Seleccione...</option>';
+
+      // Buscamos las opciones en el mapa
+      const opciones = OPCIONES_CARGO[tipoSeleccionado];
+
+      if (opciones) {
+        // Si hay opciones configuradas, las agregamos
+        opciones.forEach(opcion => {
+          const opt = document.createElement('option');
+          opt.value = opcion;
+          opt.innerHTML = opcion;
+          cargoSelect.appendChild(opt);
+        });
+        cargoSelect.disabled = false; // Habilitamos el campo
+      } else {
+        // Si no hay configuración (o es "Seleccione..."), deshabilitamos o dejamos genérico
+        cargoSelect.disabled = true;
+      }
+    }
+
     function toggleConglomerado(prefix) {
       const val = document.getElementById(prefix + '_conglomerado').value;
       const divNum = document.getElementById('div_' + prefix + '_numEstablecimientos');
@@ -503,7 +625,7 @@
                      id="${prefix}_jv_${rolKey}" 
                      name="${prefix}_jv_${rolKey}" 
                      ${reqAttr} maxlength="20"
-                     data-bs-toggle="tooltip" title="Ingrese el número de inscripción.">
+                     data-bs-toggle="tooltip" title="N. junta de vigilancia (Ej: JVPM 2026, JVPQF 1234..)">
             </div>` : '';
 
       // HTML para Carnet y Anualidad (Condicional)
@@ -579,6 +701,8 @@
     // --- CONFIGURACIÓN DE REFERENTES ---
   function configurarReferentesNI() {
       const prefix = 'ni';
+      // 1. LLAMADA NUEVA: Actualizar el menú de cargos
+      actualizarCargos(prefix); 
       const tipo = document.getElementById(prefix + '_tipoEstablecimiento').value;
       const contenedor = document.getElementById(prefix + '_seccionReferentes');
       
@@ -587,48 +711,56 @@
       contenedor.innerHTML = ''; 
       let html = '<h5 class="section-title">2. Datos de Referentes y Documentos</h5>';
 
-      // --- CASO TRS EXTRANJERO ---
+      // --- CASO 1: TRS EXTRANJERO ---
       if (tipo === 'TRS_Extranjero') {
-          // Titular Internacional: Sin JV, Sin Carnet/Anualidad, CON Respaldo
-          html += generarHTMLReferente("Referente Titular Propietario de Farmacoviglancia (Internacional)", "titular", true, prefix, {
+          // Titular Internacional
+          html += generarHTMLReferente("Referente Titular Propietario de Farmacovigilancia (Internacional)", "titular", true, prefix, {
               mostrarJV: false,
               mostrarDocsStandard: false,
               mostrarDocRespaldo: true
           });
-          //suplente
+          // Suplente
           html += generarHTMLReferente("Referente Suplente de Farmacovigilancia", "suplente", true, prefix);
-
-          // Referente Local (Normal)
+          // Local
           html += generarHTMLReferente("Referente Local de Farmacovigilancia", "local", true, prefix);
-          
       } 
       
-      // --- CASO FARMACIA ---
+      // --- CASO 2: FARMACIA ---
       else if (tipo === 'Farmacia') {
-          // Solo Titular, SIN Suplente
+          // Solo Titular
           html += generarHTMLReferente("Referente Titular Propietario de Farmacovigilancia", "titular", true, prefix);
       }
 
-      // --- RESTO DE CASOS (Prestador, Institucional, etc.) ---
+      // --- CASO 3: RESTO DE CASOS ---
+      // (Prestador, Institucional, Botiquin, Drogueria, Laboratorio e Institucional_Local)
       else {
           let labelTitular = "Referente Titular Propietario de Farmacovigilancia";
+          
+          // Si el tipo incluye la palabra "Institucional" (Macro o Local), cambia la etiqueta
           if(tipo.includes("Institucional")) labelTitular = "Referente Titular Institucional de Farmacovigilancia";
+          if(tipo.includes("Institucional_Local")) labelTitular = "Referente Titular Institucional Local de Farmacovigilancia";
           html += generarHTMLReferente(labelTitular, "titular", true, prefix);
 
+          // Todos llevan suplente, EXCEPTO Prestador
           if (tipo !== 'Prestador') { 
             let labelSuplente = "Referente Suplente de Farmacovigilancia";
             if(tipo.includes("Institucional")) labelSuplente = "Referente Suplente Institucional de Farmacovigilancia";
+            if(tipo.includes("Institucional_Local")) labelSuplente = "Referente Suplente Institucional Local de Farmacovigilancia";
+            
             html += generarHTMLReferente(labelSuplente, "suplente", true, prefix);
           }
       }
 
-      // --- ESAVI ---
+      // --- REFERENTE ESAVI ---
+      
+      // A) Para Institucional (Macro/Grande)
       if (tipo === 'Institucional') {
-        html += generarHTMLReferente("Referente Responsable ESAVI  Institucional de Farmacovigilancia", "esavi", true, prefix);
+        html += generarHTMLReferente("Referente Responsable ESAVI Institucional de Farmacovigilancia", "esavi", true, prefix);
       }
 
-      if ( tipo === 'Botiquin') {
-        html += generarHTMLReferente("Referente Responsable ESAVI  de Farmacovigilancia", "esavi", true, prefix);
+      // B) Para Botiquín e Institucional Local (Usan la misma etiqueta genérica)
+      if ( tipo === 'Botiquin' || tipo === 'Institucional_Local' ) {
+        html += generarHTMLReferente("Referente Responsable ESAVI de Farmacovigilancia", "esavi", true, prefix);
       }
 
       // --- PRESTADOR (Check Vacunas) ---
@@ -648,9 +780,8 @@
 
       contenedor.innerHTML = html;
       
-      // IMPORTANTE: Llamar a las funciones de lógica y UI
-      logicNuevoIngreso(); // Re-calcula si debe mostrar checkboxes o tarjetas completas
-      activarTooltips();   // Activa los mensajes de ayuda
+      logicNuevoIngreso(); 
+      activarTooltips();   
     }
 
     // --- VISIBILIDAD (Nuevo vs Cambio) ---
@@ -744,7 +875,7 @@
                     }
                     
                     // NOTA: El campo 'respaldo' (Extranjero) NO cae en la excepción, 
-                    // así que se volverá 'required = true' automáticamente. ¡Correcto!
+                    // así que se volverá 'required = true' automáticamente. 
                 }
             } else {
                 inp.disabled = true;
@@ -923,7 +1054,7 @@ function validarAtestadosOCarta(form) {
                 const tieneCarta = inputCarta.files.length > 0;
 
                 if (!tieneAtestados && !tieneCarta) {
-                    // --- AQUÍ EL CAMBIO ---
+                    
                     mostrarError(`⚠️ <strong>FALTA DOCUMENTACIÓN</strong><br>Referente: ${tituloReferente}<br><br>Debe adjuntar obligatoriamente:<br>👉 Atestados de Farmacovigilancia<br>O BIEN<br>👉 Carta de Compromiso.`);
                     
                     inputAtestados.classList.add('is-invalid');
@@ -987,6 +1118,7 @@ function validarAtestadosOCarta(form) {
       e.preventDefault();
       const form = e.target;
 
+
       // --- ORDEN DE VALIDACIONES ---
       
       // 1. Validar Selects (Menús desplegables)
@@ -1002,6 +1134,15 @@ function validarAtestadosOCarta(form) {
       if (typeof validarAtestadosOCarta === "function") {
          if (!validarAtestadosOCarta(form)) return;
       }
+
+      // Validación especial para la lista de nombres (Solo en Nuevo Ingreso)
+if (tipoFormulario === 'Nuevo Ingreso') {
+    const listaInput = document.getElementById('ni_lista_nombres_final');
+    if (!listaInput.value || listaInput.value === "[]") {
+        mostrarError("⚠️ <strong>FALTA EL ESTABLECIMIENTO</strong><br>Debe agregar al menos un nombre de establecimiento a la lista.");
+        return;
+    }
+}
 
       // --- SI PASA TODO, PROCEDE AL ENVÍO ---
       const botonSubmit = form.querySelector('button[type="submit"]');
@@ -1073,6 +1214,102 @@ function validarAtestadosOCarta(form) {
             trigger: 'hover' // <--- ESTO SOLUCIONA EL PROBLEMA
         })
       );
+    }
+
+    // --- FUNCIÓN PARA MOSTRAR CAMPOS DE CORREO EXTRA ---
+    function agregarCorreoExtra(prefix) {
+      const container = document.getElementById('container_emails_' + prefix);
+      const inputsOcultos = container.querySelectorAll('input.d-none');
+      const boton = document.getElementById('btn_add_' + prefix);
+
+      if (inputsOcultos.length > 0) {
+        // Mostramos el primero que encontremos oculto
+        const inputAMostrar = inputsOcultos[0];
+        inputAMostrar.classList.remove('d-none');
+        inputAMostrar.focus(); // Ponemos el cursor ahí para facilitar
+        
+        // Si ya no quedan más ocultos, escondemos el botón de agregar
+        if (inputsOcultos.length === 1) {
+           boton.disabled = true;
+           boton.innerText = "Máximo alcanzado";
+        }
+      }
+    }
+    // Variable global para almacenar los nombres
+    let nombresArray = [];
+
+    function agregarNombreManual() {
+      const input = document.getElementById('input_nombre_temporal');
+      const nombre = input.value.trim().toUpperCase();
+      const esConglomerado = document.getElementById('ni_conglomerado').value;
+
+      if (nombre === "") {
+        mostrarError("Por favor escriba un nombre antes de agregar.");
+        return;
+      }
+
+      // SI NO ES CONGLOMERADO, SOLO 1 NOMBRE ---
+      if (esConglomerado === "No" && nombresArray.length >= 1) {
+          mostrarError("⚠️ <strong>LÍMITE ALCANZADO</strong><br><br>Si seleccionó que <strong>NO</strong> es conglomerado, solo puede ingresar 1 establecimiento.<br><br>Cambie la opción a 'Sí' si desea agregar más.");
+          return;
+      }
+
+      // Evitar duplicados
+      if (nombresArray.includes(nombre)) {
+        mostrarError("Ese nombre ya está en la lista.");
+        return;
+      }
+
+      nombresArray.push(nombre);
+      input.value = "";
+      input.focus();
+      actualizarVistaNombres();
+    }
+
+    function eliminarNombre(index) {
+      nombresArray.splice(index, 1);
+      actualizarVistaNombres();
+    }
+
+    function actualizarVistaNombres() {
+      const ul = document.getElementById('visual_lista_nombres');
+      const inputOculto = document.getElementById('ni_lista_nombres_final');
+      
+      // Elemento del contador visual
+      const inputCantidad = document.getElementById('ni_cantidadEstablecimientos');
+
+      ul.innerHTML = "";
+
+      nombresArray.forEach((nom, index) => {
+        const li = document.createElement('li');
+        li.className = "list-group-item d-flex justify-content-between align-items-center py-1";
+        li.innerHTML = `
+          <span>${index + 1}. ${nom}</span>
+          <button type="button" class="btn btn-sm text-danger" onclick="eliminarNombre(${index})">
+            <i class="bi bi-trash-fill"></i>
+          </button>
+        `;
+        ul.appendChild(li);
+      });
+
+      // Guardamos el array para el servidor
+      inputOculto.value = nombresArray.length > 0 ? JSON.stringify(nombresArray) : "";
+
+      // --- NUEVO: ACTUALIZAR EL CAMPO DE CANTIDAD AUTOMÁTICAMENTE ---
+      // Si la lista está vacía, ponemos 1 por defecto (o 0), si no, el largo del array
+      let cantidadReal = nombresArray.length;
+      if (cantidadReal === 0) cantidadReal = 1; 
+      
+      inputCantidad.value = cantidadReal;
+      
+      //Si agrega más de 1, forzamos que el select diga "Si" es conglomerado
+      if (cantidadReal > 1) {
+          const selectConglomerado = document.getElementById('ni_conglomerado');
+          if (selectConglomerado.value === "No") {
+              selectConglomerado.value = "Si";
+              toggleConglomerado('ni'); // Hacemos visible el campo
+          }
+      }
     }
 
     // Activar al cargar la página por primera vez
